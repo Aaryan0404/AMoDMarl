@@ -185,6 +185,7 @@ class AMoD:
        if paxAction is None:  # default matching algorithm used if isMatching is True, matching method will need the information of self.acc[t+1], therefore this part cannot be put forward
            paxAction = pax_flows_solver.optimize()
        self.paxAction = paxAction
+       print("PaxAction: " + str(paxAction))
     #    if (episode % 1000 == 0):
     #     for i in range(len(self.edges)):
     #         print(str(self.edges[i]) + " paxAction: " + str(paxAction[i]))
@@ -439,19 +440,19 @@ class Scenario:
             self.add_road_edges()
             
             # add artificial edges (commented out due to decoupling of GNN and AMoD_Env)
-            for o_node in list(self.G.nodes):
-                for d_node in list(self.G.nodes):
-                    o_region = o_node[0]
-                    o_charge = o_node[1]
-                    d_region = d_node[0]
-                    d_charge = d_node[1]
-                    energy_dist = self.energy_distance[o_region,d_region]
-                    if o_region == d_region or o_charge - energy_dist >= d_charge: # We already created charge edges and regular road edges
-                        continue
-                    # edges from a charging station
-                    elif self.charging_stations[o_region]:
-                        if (d_charge <= self.number_charge_levels-1 - energy_dist):
-                            self.add_artificial_edges_from_or_to_station(o_node, d_node)
+            # for o_node in list(self.G.nodes):
+            #     for d_node in list(self.G.nodes):
+            #         o_region = o_node[0]
+            #         o_charge = o_node[1]
+            #         d_region = d_node[0]
+            #         d_charge = d_node[1]
+            #         energy_dist = self.energy_distance[o_region,d_region]
+            #         if o_region == d_region or o_charge - energy_dist >= d_charge: # We already created charge edges and regular road edges
+            #             continue
+            #         # edges from a charging station
+            #         elif self.charging_stations[o_region]:
+            #             if (d_charge <= self.number_charge_levels-1 - energy_dist):
+            #                 self.add_artificial_edges_from_or_to_station(o_node, d_node)
 
             self.edges = list(self.G.edges)
             print("Number of edges: " + str(len(self.edges)))

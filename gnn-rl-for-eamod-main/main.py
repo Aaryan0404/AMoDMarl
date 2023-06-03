@@ -5,7 +5,7 @@ import gurobipy as gp
 from tqdm import trange
 import numpy as np
 from src.algos.pax_flows_solver import PaxFlowsSolver
-from src.algos.reb_flows_solver import RebalFlowSolver
+from src.algos.reb_flow_solver import RebalFlowSolver
 import torch
 import json
 import os
@@ -80,43 +80,54 @@ seed = args.seed
 test = args.test
 T = args.T
 
-# toy 
-if args.toy:
-    problem_folder = 'Toy'
-    file_path = os.path.join('data', problem_folder, 'scenario_test_6_1x2_flip.json')
-    experiment = 'training_' + problem_folder+ '_' + str(args.max_episodes) + '_episodes_T_' + str(args.T) + file_path
-    energy_dist_path = os.path.join('data', problem_folder,  'energy_distance_1x2.npy')
-    scenario = create_scenario(file_path, energy_dist_path)
-    env = AMoD(scenario)
-    scale_factor = 0.01
-    scale_price = 0.1
-    model = A2C(env=env, T=T, lr_a=lr_a, lr_c=lr_c, grad_norm_clip_a=grad_norm_clip_a, grad_norm_clip_c=grad_norm_clip_c, seed=seed, scale_factor=scale_factor, scale_price=scale_price).to(device)
-    # model.load_checkpoint(path=f'saved_files/ckpt/{problem_folder}/a2c_gnn_50000.pth')
-    tf = env.tf
-else:
-    # problem_folder = 'SF_5_clustered'
-    # file_path = os.path.join('data', problem_folder,  'SF_5_short.json')
-    # problem_folder = 'NY/ClusterDataset1'
-    # file_path = os.path.join('data', problem_folder,  'd1.json')
-    problem_folder = 'NY_5'
-    file_path = os.path.join('data', problem_folder,  'NY_5_day.json')
-    experiment = 'training_' + file_path + '_' + str(args.max_episodes) + '_episodes_T_' + str(args.T)
-    energy_dist_path = os.path.join('data', problem_folder, 'energy_distance.npy')
-    scenario = create_scenario(file_path, energy_dist_path)
-    env = AMoD(scenario)
-    # Initialize A2C-GNN
-    # # NY
-    # scale_factor = 0.01
-    # scale_price = 0.1
-    # SF
-    # scale_factor = 0.00001
-    # scale_price = 0.1
-    # NY 5 
-    scale_factor = 0.0001
-    scale_price = 0.1
-    model = A2C(env=env, T=T, lr_a=lr_a, lr_c=lr_c, grad_norm_clip_a=grad_norm_clip_a, grad_norm_clip_c=grad_norm_clip_c, seed=seed, scale_factor=scale_factor, scale_price=scale_price).to(device)
-    # model.load_checkpoint(path=f'saved_files/ckpt/{problem_folder}/a2c_gnn_40000.pth')
-    tf = env.tf
+problem_folder = 'Toy'
+file_path = os.path.join('data', problem_folder, 'scenario_test_6_1x2_flip.json')
+experiment = 'training_' + problem_folder+ '_' + str(args.max_episodes) + '_episodes_T_' + str(args.T) + file_path
+energy_dist_path = os.path.join('data', problem_folder,  'energy_distance_1x2.npy')
+scenario = create_scenario(file_path, energy_dist_path)
+env = AMoD(scenario)
+scale_factor = 0.01
+scale_price = 0.1
+model = A2C(env=env, T=T, lr_a=lr_a, lr_c=lr_c, grad_norm_clip_a=grad_norm_clip_a, grad_norm_clip_c=grad_norm_clip_c, seed=seed, scale_factor=scale_factor, scale_price=scale_price).to(device)
+tf = env.tf
+
+# if args.toy:
+#     problem_folder = 'Toy'
+#     file_path = os.path.join('data', problem_folder, 'scenario_test_6_1x2_flip.json')
+#     experiment = 'training_' + problem_folder+ '_' + str(args.max_episodes) + '_episodes_T_' + str(args.T) + file_path
+#     energy_dist_path = os.path.join('data', problem_folder,  'energy_distance_1x2.npy')
+#     scenario = create_scenario(file_path, energy_dist_path)
+#     env = AMoD(scenario)
+#     scale_factor = 0.01
+#     scale_price = 0.1
+#     model = A2C(env=env, T=T, lr_a=lr_a, lr_c=lr_c, grad_norm_clip_a=grad_norm_clip_a, grad_norm_clip_c=grad_norm_clip_c, seed=seed, scale_factor=scale_factor, scale_price=scale_price).to(device)
+#     # model.load_checkpoint(path=f'saved_files/ckpt/{problem_folder}/a2c_gnn_50000.pth')
+#     tf = env.tf
+# else:
+#     # problem_folder = 'SF_5_clustered'
+#     # file_path = os.path.join('data', problem_folder,  'SF_5_short.json')
+#     # problem_folder = 'NY/ClusterDataset1'
+#     # file_path = os.path.join('data', problem_folder,  'd1.json')
+#     problem_folder = 'NY_5'
+#     file_path = os.path.join('data', problem_folder,  'NY_5_day.json')
+#     experiment = 'training_' + file_path + '_' + str(args.max_episodes) + '_episodes_T_' + str(args.T)
+#     energy_dist_path = os.path.join('data', problem_folder, 'energy_distance.npy')
+#     scenario = create_scenario(file_path, energy_dist_path)
+#     env = AMoD(scenario)
+#     # Initialize A2C-GNN
+#     # # NY
+#     # scale_factor = 0.01
+#     # scale_price = 0.1
+#     # SF
+#     # scale_factor = 0.00001
+#     # scale_price = 0.1
+#     # NY 5 
+#     scale_factor = 0.0001
+#     scale_price = 0.1
+#     model = A2C(env=env, T=T, lr_a=lr_a, lr_c=lr_c, grad_norm_clip_a=grad_norm_clip_a, grad_norm_clip_c=grad_norm_clip_c, seed=seed, scale_factor=scale_factor, scale_price=scale_price).to(device)
+#     # model.load_checkpoint(path=f'saved_files/ckpt/{problem_folder}/a2c_gnn_40000.pth')
+#     tf = env.tf
+
 if use_equal_distr_baseline:
     experiment = 'uniform_distr_baseline_' + file_path + '_' + str(args.max_episodes) + '_episodes_T_' + str(args.T)
 if test:
@@ -237,6 +248,7 @@ for i_episode in epochs:
             pax_flows_solver.update_objective()
         _, paxreward, done, info_pax = env.pax_step(pax_flows_solver=pax_flows_solver, episode=i_episode)
         episode_reward += paxreward
+        
         # use GNN-RL policy (Step 2 in paper)
         if use_equal_distr_baseline:
             action_rl = model.select_equal_action() # selects equal distr.
@@ -249,13 +261,13 @@ for i_episode in epochs:
             std_log_prob = 0
         else:
             # vanilla GCN
-            # action_rl = model.select_action()
+            action_rl = model.select_action()
 
             # MPNN implementation
             # action_rl = model.select_action_MPNN()
 
             # GAT implementation
-            action_rl = model.select_action_GAT()
+            # action_rl = model.select_action_GAT()
 
         # transform sample from Dirichlet into actual vehicle counts (i.e. (x1*x2*..*xn)*num_vehicles)
         total_idle_acc = sum(env.acc[n][env.time+1] for n in env.nodes)
@@ -272,6 +284,7 @@ for i_episode in epochs:
             assert desired_acc[n] >= 0
         for n in env.nodes:
             desired_accumulations_spatial_nodes[n[0]] += desired_acc[n]
+
         # solve minimum rebalancing distance problem (Step 3 in paper)
         if step == 0 and i_episode == 0:
             # initialize optimization problem in the first step
@@ -388,15 +401,9 @@ for step in range(T):
     episode_reward += paxreward
    
     # use GNN-RL policy (Step 2 in paper)
-
-    # vanilla GCN
-    # action_rl = best_model.select_action(eval_mode=True)
-
-    # MPNN
-    # action_rl = best_model.select_action_MPNN(eval_mode=True)
-
-    # GAT
-    action_rl = best_model.select_action_GAT(eval_mode=True)
+    action_rl = best_model.select_action(eval_mode=True)  # vanilla GCN
+    # action_rl = best_model.select_action_MPNN(eval_mode=True)  # MPNN
+    # action_rl = best_model.select_action_GAT(eval_mode=True)  # GAT
     
     # transform sample from Dirichlet into actual vehicle counts (i.e. (x1*x2*..*xn)*num_vehicles)
     total_idle_acc = sum(env.acc[n][env.time+1] for n in env.nodes)
@@ -413,6 +420,7 @@ for step in range(T):
         assert desired_acc[n] >= 0
     for n in env.nodes:
         desired_accumulations_spatial_nodes[n[0]] += desired_acc[n]
+
     # solve minimum rebalancing distance problem (Step 3 in paper)
     if step == 0 and i_episode == 0:
         # initialize optimization problem in the first step

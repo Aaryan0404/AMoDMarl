@@ -52,7 +52,6 @@ class GNNParser():
         self.input_size = input_size
 
     def parse_obs(self):
-        # nodes
         x = torch.cat((
             torch.tensor([float(n[1])/self.env.scenario.number_charge_levels for n in self.env.nodes]
                          ).view(1, 1, self.env.number_nodes).float(),
@@ -63,171 +62,188 @@ class GNNParser():
             torch.tensor([[sum([self.env.price[o[0], j][t]*self.scale_factor*self.price_scale_factor*(self.env.demand[o[0], j][t])*((o[1]-self.env.scenario.energy_distance[o[0], j]) >= int(not self.env.scenario.charging_stations[j]))
                           for j in self.env.region]) for o in self.env.nodes] for t in range(self.env.time+1, self.env.time+self.T+1)]).view(1, self.T, self.env.number_nodes).float()),
                       dim=1).squeeze(0).view(self.input_size, self.env.number_nodes).T
-        
-        # edges 
-
-        # versions for edge_index
-        # V0 - all edges from AMoD passed into GCN
-        edges = self.env.edges
         edge_index = self.env.gcn_edge_idx
-        # print("# of EDGES PASSED TO GCN" + str(edge_index.shape[1])) = 20
-
-        # V1 - no edges, only self loops
-        # edges = []
-        # for o in self.env.nodes:
-        #     for d in self.env.nodes:
-        #         if (o[0] == d[0] and o[1] == d[1]):
-        #             edges.append([o, d])
-        # edge_idx = torch.tensor([[], []], dtype=torch.long)
-        # for e in edges:
-        #     origin_node_idx = self.env.nodes.index(e[0])
-        #     destination_node_idx = self.env.nodes.index(e[1])
-        #     new_edge = torch.tensor([[origin_node_idx], [destination_node_idx]], dtype=torch.long)
-        #     edge_idx = torch.cat((edge_idx, new_edge), 1)
-        # edge_index = edge_idx
-        # print("# of EDGES PASSED TO GCN" + str(edge_index.shape[1])) # = 12
-
-        # V2 - combination of V0 and V1
-        # edges = []
-        # for o in self.env.nodes:
-        #     for d in self.env.nodes:
-        #         if (o[0] == d[0] and o[1] == d[1]):
-        #             edges.append([o, d])
-        # edge_idx = torch.tensor([[], []], dtype=torch.long)
-        # for e in edges:
-        #     origin_node_idx = self.env.nodes.index(e[0])
-        #     destination_node_idx = self.env.nodes.index(e[1])
-        #     new_edge = torch.tensor([[origin_node_idx], [destination_node_idx]], dtype=torch.long)
-        #     edge_idx = torch.cat((edge_idx, new_edge), 1)
-        # edge_index = torch.cat((edge_idx, self.env.gcn_edge_idx), 1)
-        # print("# of EDGES PASSED TO GCN" + str(edge_index.shape[1])) # = 32
-
-        # V3 - grid style one-hop connections
-        # edges = []
-        # for o in self.env.nodes:
-        #     for d in self.env.nodes:
-        #         if ((o[1] == d[1] and o[0] != d[0]) or ((o[1] == d[1] - 1) and (o[0] == d[0])) or ((o[1] == d[1] + 1) and (o[0] == d[0]))):
-        #             edges.append([o, d])
-        # edge_idx = torch.tensor([[], []], dtype=torch.long)
-        # for e in edges:
-        #     origin_node_idx = self.env.nodes.index(e[0])
-        #     destination_node_idx = self.env.nodes.index(e[1])
-        #     new_edge = torch.tensor([[origin_node_idx], [destination_node_idx]], dtype=torch.long)
-        #     edge_idx = torch.cat((edge_idx, new_edge), 1)
-        # edge_index = edge_idx
-        # print("# of EDGES PASSED TO GCN" + str(edge_index.shape[1])) # = 32
-        
-        # V4 - combination of V3 and V1
-        # edges = []
-        # for o in self.env.nodes:
-        #     for d in self.env.nodes:
-        #         if ((o[1] == d[1] and o[0] == d[0]) or (o[1] == d[1] and o[0] != d[0]) or ((o[1] == d[1] - 1) and (o[0] == d[0])) or ((o[1] == d[1] + 1) and (o[0] == d[0]))):
-        #             edges.append([o, d])
-        # edge_idx = torch.tensor([[], []], dtype=torch.long)
-        # for e in edges:
-        #     origin_node_idx = self.env.nodes.index(e[0])
-        #     destination_node_idx = self.env.nodes.index(e[1])
-        #     new_edge = torch.tensor([[origin_node_idx], [destination_node_idx]], dtype=torch.long)
-        #     edge_idx = torch.cat((edge_idx, new_edge), 1)
-        # edge_index = edge_idx
-        # print("# of EDGES PASSED TO GCN" + str(edge_index.shape[1])) # = 44
-
-        # V5 - all edges + artificial edges + "infeasible" charge edges + "unintuitive" road edges + self loops
-        # charge_delta = 4
-        # max_charge = 5
-        # edges = []
-        # for o in self.env.nodes:
-        #     for d in self.env.nodes:
-        #         # artificial edges
-        #         if ((o[0] != d[0]) and (o[1] + (charge_delta - 1) == d[1]) and (d[1] != max_charge)):
-        #             edges.append([o, d])
-        #         # "infeasible" charge edges
-        #         if ((o[0] == d[0]) and (o[1] + (charge_delta + 1) == d[1])):
-        #             edges.append([o, d])
-        #         # "unintuitive" road edges
-        #         if (o[0] == d[0] and (o[1] - 1 == d[1])):
-        #             edges.append([o, d])
-        #         # self loops
-        #         if (o[0] == d[0] and o[1] == d[1]):
-        #             edges.append([o, d])
-        # edge_idx = torch.tensor([[], []], dtype=torch.long)
-        # for e in edges:
-        #     origin_node_idx = self.env.nodes.index(e[0])
-        #     destination_node_idx = self.env.nodes.index(e[1])
-        #     new_edge = torch.tensor([[origin_node_idx], [destination_node_idx]], dtype=torch.long)
-        #     edge_idx = torch.cat((edge_idx, new_edge), 1)
-        # edge_idx = torch.cat((edge_idx, self.env.gcn_edge_idx), 1)
-        # edge_index = edge_idx
-        # print("# of EDGES PASSED TO GCN" + str(edge_index.shape[1])) # = 48
-
-        # V6 - all edges + artificial edges + "infeasible" charge edges + "unintuitive" road edges
-        # charge_delta = 4
-        # max_charge = 5
-        # edges = []
-        # for o in self.env.nodes:
-        #     for d in self.env.nodes:
-        #         # artificial edges
-        #         if ((o[0] != d[0]) and (o[1] + (charge_delta - 1) == d[1]) and (d[1] != max_charge)):
-        #             edges.append([o, d])
-        #         # "infeasible" charge edges
-        #         if ((o[0] == d[0]) and (o[1] + (charge_delta + 1) == d[1])):
-        #             edges.append([o, d])
-        #         # "unintuitive" road edges
-        #         if (o[0] == d[0] and (o[1] - 1 == d[1])):
-        #             edges.append([o, d])
-        # edge_idx = torch.tensor([[], []], dtype=torch.long)
-        # for e in edges:
-        #     origin_node_idx = self.env.nodes.index(e[0])
-        #     destination_node_idx = self.env.nodes.index(e[1])
-        #     new_edge = torch.tensor([[origin_node_idx], [destination_node_idx]], dtype=torch.long)
-        #     edge_idx = torch.cat((edge_idx, new_edge), 1)
-        # edge_idx = torch.cat((edge_idx, self.env.gcn_edge_idx), 1)
-        # edge_index = edge_idx
-        # print("# of EDGES PASSED TO GCN" + str(edge_index.shape[1])) # = 36
-
-        # default/global return (regular GCN)
-        # data = Data(x, edge_index)
-
-        # edge features for MPNN implementation
-        all_times = []
-        # Loop over edges, get 'time' values for each edge, and add to 'all_times' list.
-        # edges.extend(self.env.edges) needed when adding self-loops only
-        for e in edges:
-            if e in self.env.edges:
-                i, j = self.env.edges[self.env.edges.index(e)]
-                times_for_e = list(self.env.G.edges[i, j]['time'].values())
-            else:
-                times_for_e = [0]
-            while (len(times_for_e) < self.input_size):
-                times_for_e.append(0)
-            all_times.extend(times_for_e)
-        # Convert the list of 'time' values into a tensor.
-        tensor = torch.tensor(all_times)
-        e = (tensor.view(1, np.prod(tensor.shape)).float()).squeeze(0).view(self.input_size, len(edges)).T
-
-        # print("x shape: " + str(x.shape))
-        # print("edge_index shape: " + str(edge_index.shape)) 
-        # print("edge_attr shape: " + str(e.shape))
-        data = Data(x, edge_index, edge_attr=e)
-        
-        return data
-    
-        # Add evaluation mode to code base with greedy mean parameter extarction from dirchilet 
-        # Finish V0 - V5 (with artificial edges added)
-        # Graph Convolution already implemented - try Graph Attention and Graph Message Passing (with edge features)
-        # RL Tuning (number of layers, dimensionality, step size (e-4))
-
-    def parse_obs_spatial(self):
-        x = torch.cat((
-            torch.tensor([self.env.acc_spatial[n][self.env.time+1]*self.scale_factor for n in self.env.nodes_spatial]).view(1, 1, self.env.number_nodes_spatial).float(), 
-            torch.tensor([[(self.env.acc_spatial[n][self.env.time+1] + self.env.dacc_spatial[n][t])*self.scale_factor for n in self.env.nodes_spatial] \
-                          for t in range(self.env.time+1, self.env.time+self.T+1)]).view(1, self.T, self.env.number_nodes_spatial).float(),
-            torch.tensor([[sum([self.env.price[o,j][t]*self.scale_factor*self.price_scale_factor*(self.env.demand[o,j][t]) \
-                          for j in self.env.region]) for o in self.env.region] for t in range(self.env.time+1, self.env.time+self.T+1)]).view(1, self.T, self.env.number_nodes_spatial).float()),
-              dim=1).squeeze(0).view(self.input_size, self.env.number_nodes_spatial).T
-        edge_index  = self.env.gcn_edge_idx_spatial
+        # edge_weight = self.env.edge_weight
         data = Data(x, edge_index)
         return data
+
+    # def parse_obs(self):
+    #     # nodes
+    #     x = torch.cat((
+    #         torch.tensor([float(n[1])/self.env.scenario.number_charge_levels for n in self.env.nodes]
+    #                      ).view(1, 1, self.env.number_nodes).float(),
+    #         torch.tensor([self.env.acc[n][self.env.time+1]*self.scale_factor for n in self.env.nodes]
+    #                      ).view(1, 1, self.env.number_nodes).float(),
+    #         torch.tensor([[(self.env.acc[n][self.env.time+1] + self.env.dacc[n][t])*self.scale_factor for n in self.env.nodes]
+    #                       for t in range(self.env.time+1, self.env.time+self.T+1)]).view(1, self.T, self.env.number_nodes).float(),
+    #         torch.tensor([[sum([self.env.price[o[0], j][t]*self.scale_factor*self.price_scale_factor*(self.env.demand[o[0], j][t])*((o[1]-self.env.scenario.energy_distance[o[0], j]) >= int(not self.env.scenario.charging_stations[j]))
+    #                       for j in self.env.region]) for o in self.env.nodes] for t in range(self.env.time+1, self.env.time+self.T+1)]).view(1, self.T, self.env.number_nodes).float()),
+    #                   dim=1).squeeze(0).view(self.input_size, self.env.number_nodes).T
+        
+    #     # edges 
+
+    #     # versions for edge_index
+    #     # V0 - all edges from AMoD passed into GCN
+    #     edges = self.env.edges
+    #     edge_index = self.env.gcn_edge_idx
+    #     # print("# of EDGES PASSED TO GCN" + str(edge_index.shape[1])) = 20
+
+    #     # V1 - no edges, only self loops
+    #     # edges = []
+    #     # for o in self.env.nodes:
+    #     #     for d in self.env.nodes:
+    #     #         if (o[0] == d[0] and o[1] == d[1]):
+    #     #             edges.append([o, d])
+    #     # edge_idx = torch.tensor([[], []], dtype=torch.long)
+    #     # for e in edges:
+    #     #     origin_node_idx = self.env.nodes.index(e[0])
+    #     #     destination_node_idx = self.env.nodes.index(e[1])
+    #     #     new_edge = torch.tensor([[origin_node_idx], [destination_node_idx]], dtype=torch.long)
+    #     #     edge_idx = torch.cat((edge_idx, new_edge), 1)
+    #     # edge_index = edge_idx
+    #     # print("# of EDGES PASSED TO GCN" + str(edge_index.shape[1])) # = 12
+
+    #     # V2 - combination of V0 and V1
+    #     # edges = []
+    #     # for o in self.env.nodes:
+    #     #     for d in self.env.nodes:
+    #     #         if (o[0] == d[0] and o[1] == d[1]):
+    #     #             edges.append([o, d])
+    #     # edge_idx = torch.tensor([[], []], dtype=torch.long)
+    #     # for e in edges:
+    #     #     origin_node_idx = self.env.nodes.index(e[0])
+    #     #     destination_node_idx = self.env.nodes.index(e[1])
+    #     #     new_edge = torch.tensor([[origin_node_idx], [destination_node_idx]], dtype=torch.long)
+    #     #     edge_idx = torch.cat((edge_idx, new_edge), 1)
+    #     # edge_index = torch.cat((edge_idx, self.env.gcn_edge_idx), 1)
+    #     # print("# of EDGES PASSED TO GCN" + str(edge_index.shape[1])) # = 32
+
+    #     # V3 - grid style one-hop connections
+    #     # edges = []
+    #     # for o in self.env.nodes:
+    #     #     for d in self.env.nodes:
+    #     #         if ((o[1] == d[1] and o[0] != d[0]) or ((o[1] == d[1] - 1) and (o[0] == d[0])) or ((o[1] == d[1] + 1) and (o[0] == d[0]))):
+    #     #             edges.append([o, d])
+    #     # edge_idx = torch.tensor([[], []], dtype=torch.long)
+    #     # for e in edges:
+    #     #     origin_node_idx = self.env.nodes.index(e[0])
+    #     #     destination_node_idx = self.env.nodes.index(e[1])
+    #     #     new_edge = torch.tensor([[origin_node_idx], [destination_node_idx]], dtype=torch.long)
+    #     #     edge_idx = torch.cat((edge_idx, new_edge), 1)
+    #     # edge_index = edge_idx
+    #     # print("# of EDGES PASSED TO GCN" + str(edge_index.shape[1])) # = 32
+        
+    #     # V4 - combination of V3 and V1
+    #     # edges = []
+    #     # for o in self.env.nodes:
+    #     #     for d in self.env.nodes:
+    #     #         if ((o[1] == d[1] and o[0] == d[0]) or (o[1] == d[1] and o[0] != d[0]) or ((o[1] == d[1] - 1) and (o[0] == d[0])) or ((o[1] == d[1] + 1) and (o[0] == d[0]))):
+    #     #             edges.append([o, d])
+    #     # edge_idx = torch.tensor([[], []], dtype=torch.long)
+    #     # for e in edges:
+    #     #     origin_node_idx = self.env.nodes.index(e[0])
+    #     #     destination_node_idx = self.env.nodes.index(e[1])
+    #     #     new_edge = torch.tensor([[origin_node_idx], [destination_node_idx]], dtype=torch.long)
+    #     #     edge_idx = torch.cat((edge_idx, new_edge), 1)
+    #     # edge_index = edge_idx
+    #     # print("# of EDGES PASSED TO GCN" + str(edge_index.shape[1])) # = 44
+
+    #     # V5 - all edges + artificial edges + "infeasible" charge edges + "unintuitive" road edges + self loops
+    #     # charge_delta = 4
+    #     # max_charge = 5
+    #     # edges = []
+    #     # for o in self.env.nodes:
+    #     #     for d in self.env.nodes:
+    #     #         # artificial edges
+    #     #         if ((o[0] != d[0]) and (o[1] + (charge_delta - 1) == d[1]) and (d[1] != max_charge)):
+    #     #             edges.append([o, d])
+    #     #         # "infeasible" charge edges
+    #     #         if ((o[0] == d[0]) and (o[1] + (charge_delta + 1) == d[1])):
+    #     #             edges.append([o, d])
+    #     #         # "unintuitive" road edges
+    #     #         if (o[0] == d[0] and (o[1] - 1 == d[1])):
+    #     #             edges.append([o, d])
+    #     #         # self loops
+    #     #         if (o[0] == d[0] and o[1] == d[1]):
+    #     #             edges.append([o, d])
+    #     # edge_idx = torch.tensor([[], []], dtype=torch.long)
+    #     # for e in edges:
+    #     #     origin_node_idx = self.env.nodes.index(e[0])
+    #     #     destination_node_idx = self.env.nodes.index(e[1])
+    #     #     new_edge = torch.tensor([[origin_node_idx], [destination_node_idx]], dtype=torch.long)
+    #     #     edge_idx = torch.cat((edge_idx, new_edge), 1)
+    #     # edge_idx = torch.cat((edge_idx, self.env.gcn_edge_idx), 1)
+    #     # edge_index = edge_idx
+    #     # print("# of EDGES PASSED TO GCN" + str(edge_index.shape[1])) # = 48
+
+    #     # V6 - all edges + artificial edges + "infeasible" charge edges + "unintuitive" road edges
+    #     # charge_delta = 4
+    #     # max_charge = 5
+    #     # edges = []
+    #     # for o in self.env.nodes:
+    #     #     for d in self.env.nodes:
+    #     #         # artificial edges
+    #     #         if ((o[0] != d[0]) and (o[1] + (charge_delta - 1) == d[1]) and (d[1] != max_charge)):
+    #     #             edges.append([o, d])
+    #     #         # "infeasible" charge edges
+    #     #         if ((o[0] == d[0]) and (o[1] + (charge_delta + 1) == d[1])):
+    #     #             edges.append([o, d])
+    #     #         # "unintuitive" road edges
+    #     #         if (o[0] == d[0] and (o[1] - 1 == d[1])):
+    #     #             edges.append([o, d])
+    #     # edge_idx = torch.tensor([[], []], dtype=torch.long)
+    #     # for e in edges:
+    #     #     origin_node_idx = self.env.nodes.index(e[0])
+    #     #     destination_node_idx = self.env.nodes.index(e[1])
+    #     #     new_edge = torch.tensor([[origin_node_idx], [destination_node_idx]], dtype=torch.long)
+    #     #     edge_idx = torch.cat((edge_idx, new_edge), 1)
+    #     # edge_idx = torch.cat((edge_idx, self.env.gcn_edge_idx), 1)
+    #     # edge_index = edge_idx
+    #     # print("# of EDGES PASSED TO GCN" + str(edge_index.shape[1])) # = 36
+
+    #     # default/global return (regular GCN)
+    #     # data = Data(x, edge_index)
+
+    #     # edge features for MPNN implementation
+    #     # all_times = []
+    #     # # Loop over edges, get 'time' values for each edge, and add to 'all_times' list.
+    #     # # edges.extend(self.env.edges) needed when adding self-loops only
+    #     # for e in edges:
+    #     #     if e in self.env.edges:
+    #     #         i, j = self.env.edges[self.env.edges.index(e)]
+    #     #         times_for_e = list(self.env.G.edges[i, j]['time'].values())
+    #     #     else:
+    #     #         times_for_e = [0]
+    #     #     while (len(times_for_e) < self.input_size):
+    #     #         times_for_e.append(0)
+    #     #     all_times.extend(times_for_e)
+    #     # # Convert the list of 'time' values into a tensor.
+    #     # tensor = torch.tensor(all_times)
+    #     # e = (tensor.view(1, np.prod(tensor.shape)).float()).squeeze(0).view(self.input_size, len(edges)).T
+
+    #     # print("x shape: " + str(x.shape))
+    #     # print("edge_index shape: " + str(edge_index.shape)) 
+    #     # print("edge_attr shape: " + str(e.shape))
+    #     data = Data(x, edge_index, edge_attr=e)
+        
+    #     return data
+    
+    #     # Add evaluation mode to code base with greedy mean parameter extarction from dirchilet 
+    #     # Finish V0 - V5 (with artificial edges added)
+    #     # Graph Convolution already implemented - try Graph Attention and Graph Message Passing (with edge features)
+    #     # RL Tuning (number of layers, dimensionality, step size (e-4))
+
+    # def parse_obs_spatial(self):
+    #     x = torch.cat((
+    #         torch.tensor([self.env.acc_spatial[n][self.env.time+1]*self.scale_factor for n in self.env.nodes_spatial]).view(1, 1, self.env.number_nodes_spatial).float(), 
+    #         torch.tensor([[(self.env.acc_spatial[n][self.env.time+1] + self.env.dacc_spatial[n][t])*self.scale_factor for n in self.env.nodes_spatial] \
+    #                       for t in range(self.env.time+1, self.env.time+self.T+1)]).view(1, self.T, self.env.number_nodes_spatial).float(),
+    #         torch.tensor([[sum([self.env.price[o,j][t]*self.scale_factor*self.price_scale_factor*(self.env.demand[o,j][t]) \
+    #                       for j in self.env.region]) for o in self.env.region] for t in range(self.env.time+1, self.env.time+self.T+1)]).view(1, self.T, self.env.number_nodes_spatial).float()),
+    #           dim=1).squeeze(0).view(self.input_size, self.env.number_nodes_spatial).T
+    #     edge_index  = self.env.gcn_edge_idx_spatial
+    #     data = Data(x, edge_index)
+    #     return data
     
 
 class EdgeConv(MessagePassing):
@@ -267,27 +283,27 @@ class GNNActor(nn.Module):
     """
 
     # regular GCN implementation
-    # def __init__(self, in_channels):
-    #     super().__init__()
-    #     self.conv1 = GCNConv(in_channels, in_channels*4)
-    #     self.conv2 = GCNConv(in_channels*4, in_channels*2)
-    #     self.conv3 = GCNConv(in_channels*2, in_channels)
-    #     self.lin1 = nn.Linear(in_channels, 128)
-    #     self.lin2 = nn.Linear(128, 64)
-    #     self.lin3 = nn.Linear(64, 32)
-    #     self.lin4 = nn.Linear(32, 2)
+    def __init__(self, in_channels):
+        super().__init__()
+        self.conv1 = GCNConv(in_channels, in_channels*4)
+        self.conv2 = GCNConv(in_channels*4, in_channels*2)
+        self.conv3 = GCNConv(in_channels*2, in_channels)
+        self.lin1 = nn.Linear(in_channels, 128)
+        self.lin2 = nn.Linear(128, 64)
+        self.lin3 = nn.Linear(64, 32)
+        self.lin4 = nn.Linear(32, 2)
 
-    # def forward(self, data):
-    #     # data = data.to("cuda:0")
-    #     out = F.relu(self.conv1(data.x, data.edge_index))  # , data.edge_weight
-    #     out = F.relu(self.conv2(out, data.edge_index))
-    #     out = F.relu(self.conv3(out, data.edge_index))
-    #     x = out + data.x
-    #     x = F.relu(self.lin1(x))
-    #     x = F.relu(self.lin2(x))
-    #     x = F.relu(self.lin3(x))
-    #     x = self.lin4(x)
-    #     return x[:, 0], x[:, 1]
+    def forward(self, data):
+        # data = data.to("cuda:0")
+        out = F.relu(self.conv1(data.x, data.edge_index))  # , data.edge_weight
+        out = F.relu(self.conv2(out, data.edge_index))
+        out = F.relu(self.conv3(out, data.edge_index))
+        x = out + data.x
+        x = F.relu(self.lin1(x))
+        x = F.relu(self.lin2(x))
+        x = F.relu(self.lin3(x))
+        x = self.lin4(x)
+        return x[:, 0], x[:, 1]
 
     # MPNN implementation
     # def __init__(self, node_size=4, edge_size=0, hidden_dim=32, out_channels=1):
@@ -310,23 +326,23 @@ class GNNActor(nn.Module):
     #     return (mu, sigma), alpha
 
     # GAT implementation
-    def __init__(self, in_channels, dim_h=16, out_channels=2, heads=16, dropout_rate=0):
-        super().__init__()
-        self.gat1 = GATv2Conv(in_channels, dim_h, heads=heads)
-        self.gat2 = GATv2Conv(dim_h * heads, dim_h, heads=heads)
-        self.gat3 = GATv2Conv(dim_h * heads, out_channels, heads=1)
-        self.dropout = nn.Dropout(dropout_rate)
-        self.bn = nn.BatchNorm1d(dim_h * heads)
+    # def __init__(self, in_channels, dim_h=16, out_channels=2, heads=16, dropout_rate=0):
+    #     super().__init__()
+    #     self.gat1 = GATv2Conv(in_channels, dim_h, heads=heads)
+    #     self.gat2 = GATv2Conv(dim_h * heads, dim_h, heads=heads)
+    #     self.gat3 = GATv2Conv(dim_h * heads, out_channels, heads=1)
+    #     self.dropout = nn.Dropout(dropout_rate)
+    #     self.bn = nn.BatchNorm1d(dim_h * heads)
 
-    def forward(self, x, edge_index):
-        out = F.relu(self.gat1(x, edge_index)) 
-        out = self.bn(out)
-        out = self.dropout(out)
-        out = F.relu(self.gat2(out, edge_index)) 
-        out = self.bn(out)
-        out = self.dropout(out)
-        out = self.gat3(out, edge_index) 
-        return out[:, 0], out[:, 1]
+    # def forward(self, x, edge_index):
+    #     out = F.relu(self.gat1(x, edge_index)) 
+    #     out = self.bn(out)
+    #     out = self.dropout(out)
+    #     out = F.relu(self.gat2(out, edge_index)) 
+    #     out = self.bn(out)
+    #     out = self.dropout(out)
+    #     out = self.gat3(out, edge_index) 
+    #     return out[:, 0], out[:, 1]
 
 #########################################
 ############## CRITIC ###################
@@ -339,27 +355,27 @@ class GNNCritic(nn.Module):
     """
 
     # regular GCN implementation
-    # def __init__(self, in_channels):
-    #     super().__init__()
-    #     self.conv1 = GCNConv(in_channels, in_channels*4)
-    #     self.conv2 = GCNConv(in_channels*4, in_channels*2)
-    #     self.conv3 = GCNConv(in_channels*2, in_channels)
-    #     self.lin1 = nn.Linear(in_channels, 128)
-    #     self.lin2 = nn.Linear(128, 64)
-    #     self.lin3 = nn.Linear(64, 32)
-    #     self.lin4 = nn.Linear(32, 1)
+    def __init__(self, in_channels):
+        super().__init__()
+        self.conv1 = GCNConv(in_channels, in_channels*4)
+        self.conv2 = GCNConv(in_channels*4, in_channels*2)
+        self.conv3 = GCNConv(in_channels*2, in_channels)
+        self.lin1 = nn.Linear(in_channels, 128)
+        self.lin2 = nn.Linear(128, 64)
+        self.lin3 = nn.Linear(64, 32)
+        self.lin4 = nn.Linear(32, 1)
 
-    # def forward(self, data):
-    #     out = F.relu(self.conv1(data.x, data.edge_index))  # , data.edge_weight
-    #     out = F.relu(self.conv2(out, data.edge_index))
-    #     out = F.relu(self.conv3(out, data.edge_index))
-    #     x = out + data.x
-    #     x = torch.sum(x, dim=0)
-    #     x = F.relu(self.lin1(x))
-    #     x = F.relu(self.lin2(x))
-    #     x = F.relu(self.lin3(x))
-    #     x = self.lin4(x)
-    #     return x
+    def forward(self, data):
+        out = F.relu(self.conv1(data.x, data.edge_index))  # , data.edge_weight
+        out = F.relu(self.conv2(out, data.edge_index))
+        out = F.relu(self.conv3(out, data.edge_index))
+        x = out + data.x
+        x = torch.sum(x, dim=0)
+        x = F.relu(self.lin1(x))
+        x = F.relu(self.lin2(x))
+        x = F.relu(self.lin3(x))
+        x = self.lin4(x)
+        return x
 
     # MPNN implementation
     # def __init__(self, node_size=4, edge_size=2, hidden_dim=32, out_channels=1):
@@ -380,23 +396,23 @@ class GNNCritic(nn.Module):
     #     return v
     
     # GAT implementation
-    def __init__(self, in_channels, dim_h=16, out_channels=1, heads=16, dropout_rate=0):
-        super().__init__()
-        self.gat1 = GATv2Conv(in_channels, dim_h, heads=heads)
-        self.gat2 = GATv2Conv(dim_h * heads, dim_h, heads=heads)
-        self.gat3 = GATv2Conv(dim_h * heads, out_channels, heads=1)
-        self.dropout = nn.Dropout(dropout_rate)
-        self.bn = nn.BatchNorm1d(dim_h * heads)
+    # def __init__(self, in_channels, dim_h=16, out_channels=1, heads=16, dropout_rate=0):
+    #     super().__init__()
+    #     self.gat1 = GATv2Conv(in_channels, dim_h, heads=heads)
+    #     self.gat2 = GATv2Conv(dim_h * heads, dim_h, heads=heads)
+    #     self.gat3 = GATv2Conv(dim_h * heads, out_channels, heads=1)
+    #     self.dropout = nn.Dropout(dropout_rate)
+    #     self.bn = nn.BatchNorm1d(dim_h * heads)
 
-    def forward(self, x, edge_index):
-        out = F.relu(self.gat1(x, edge_index)) 
-        out = self.bn(out)
-        out = self.dropout(out)
-        out = F.relu(self.gat2(out, edge_index)) 
-        out = self.bn(out)
-        out = self.dropout(out)
-        out = self.gat3(out, edge_index) 
-        return out.mean(dim=0)
+    # def forward(self, x, edge_index):
+    #     out = F.relu(self.gat1(x, edge_index)) 
+    #     out = self.bn(out)
+    #     out = self.dropout(out)
+    #     out = F.relu(self.gat2(out, edge_index)) 
+    #     out = self.bn(out)
+    #     out = self.dropout(out)
+    #     out = self.gat3(out, edge_index) 
+    #     return out.mean(dim=0)
 
 #########################################
 ############## A2C AGENT ################
@@ -427,14 +443,14 @@ class A2C(nn.Module):
         self.device = device
 
         # regular GCN implementation
-        # self.actor = GNNActor(in_channels=self.input_size)
-        # self.critic = GNNCritic(in_channels=self.input_size)
-        # self.obs_parser = GNNParser(self.env, T=T, input_size=self.input_size, scale_factor=scale_factor, scale_price=scale_price)
-
-        # MPNN implementation (specifically configured for V2 - default edges from AMoD plus self-loops = 32 edges for toy example)
         self.actor = GNNActor(in_channels=self.input_size)
         self.critic = GNNCritic(in_channels=self.input_size)
         self.obs_parser = GNNParser(self.env, T=T, input_size=self.input_size, scale_factor=scale_factor, scale_price=scale_price)
+
+        # MPNN implementation (specifically configured for V2 - default edges from AMoD plus self-loops = 32 edges for toy example)
+        # self.actor = GNNActor(in_channels=self.input_size)
+        # self.critic = GNNCritic(in_channels=self.input_size)
+        # self.obs_parser = GNNParser(self.env, T=T, input_size=self.input_size, scale_factor=scale_factor, scale_price=scale_price)
 
         self.optimizers = self.configure_optimizers()
 
@@ -464,15 +480,14 @@ class A2C(nn.Module):
         x = self.parse_obs().to(self.device)
 
         # regular GCN implementation
-        # # actor: computes concentration parameters of a Dirichlet distribution
-        # a_out_concentration, a_out_is_zero = self.actor(x)
-        # concentration = F.softplus(a_out_concentration).reshape(-1) + jitter
-        # non_zero = torch.sigmoid(a_out_is_zero).reshape(-1)
+        # actor: computes concentration parameters of a Dirichlet distribution
+        a_out_concentration, a_out_is_zero = self.actor(x)
+        concentration = F.softplus(a_out_concentration).reshape(-1) + jitter
+        non_zero = torch.sigmoid(a_out_is_zero).reshape(-1)
 
-        # # critic: estimates V(s_t)
-        # value = self.critic(x)
-        # return concentration, non_zero, value
-
+        # critic: estimates V(s_t)
+        value = self.critic(x)
+        return concentration, non_zero, value
 
 
         # MPNN implementation
@@ -569,50 +584,50 @@ class A2C(nn.Module):
         
         return action
     
-    def select_action_GAT(self, eval_mode=False):
-        concentration, non_zero, value = self.forward()
-        concentration = concentration.to(self.device)
-        non_zero = non_zero.to(self.device)
-        value = value.to(self.device)
-        # concentration, value = self.forward(obs)
-        concentration_without_zeros = torch.tensor([], dtype=torch.float32)
-        sampled_zero_bool_arr = []
-        log_prob_for_zeros = 0
-        for node in range(non_zero.shape[0]):
-            sample = torch.bernoulli(non_zero[node])
-            if sample > 0:
-                indices = torch.tensor([node])
-                new_element = torch.index_select(concentration, 0, indices)
-                concentration_without_zeros = torch.cat((concentration_without_zeros, new_element), 0)
-                sampled_zero_bool_arr.append(False)
-                log_prob_for_zeros += torch.log(non_zero[node])
-            else:
-                sampled_zero_bool_arr.append(True)
-                log_prob_for_zeros += torch.log(1-non_zero[node])
-        if concentration_without_zeros.shape[0] != 0:
-            mean_concentration = np.mean(concentration_without_zeros.detach().numpy())
-            std_concentration = np.std(concentration_without_zeros.detach().numpy())
-            self.means_concentration.append(mean_concentration)
-            self.std_concentration.append(std_concentration)
-            m = Dirichlet(concentration_without_zeros)
-            if (eval_mode):
-                dirichlet_action = concentration_without_zeros / (concentration_without_zeros.sum() + 1e-16)
-            else:
-                dirichlet_action = m.rsample()
-            dirichlet_action_np = list(dirichlet_action.detach().numpy())
-            log_prob_dirichlet = m.log_prob(dirichlet_action)
-        else:
-            log_prob_dirichlet = 0
-        self.saved_actions.append(SavedAction(log_prob_dirichlet+log_prob_for_zeros, value))
-        action_np = []
-        dirichlet_idx = 0
-        for node in range(non_zero.shape[0]):
-            if sampled_zero_bool_arr[node]:
-                action_np.append(0.)
-            else:
-                action_np.append(dirichlet_action_np[dirichlet_idx])
-                dirichlet_idx += 1
-        return action_np
+    # def select_action_GAT(self, eval_mode=False):
+    #     concentration, non_zero, value = self.forward()
+    #     concentration = concentration.to(self.device)
+    #     non_zero = non_zero.to(self.device)
+    #     value = value.to(self.device)
+    #     # concentration, value = self.forward(obs)
+    #     concentration_without_zeros = torch.tensor([], dtype=torch.float32)
+    #     sampled_zero_bool_arr = []
+    #     log_prob_for_zeros = 0
+    #     for node in range(non_zero.shape[0]):
+    #         sample = torch.bernoulli(non_zero[node])
+    #         if sample > 0:
+    #             indices = torch.tensor([node])
+    #             new_element = torch.index_select(concentration, 0, indices)
+    #             concentration_without_zeros = torch.cat((concentration_without_zeros, new_element), 0)
+    #             sampled_zero_bool_arr.append(False)
+    #             log_prob_for_zeros += torch.log(non_zero[node])
+    #         else:
+    #             sampled_zero_bool_arr.append(True)
+    #             log_prob_for_zeros += torch.log(1-non_zero[node])
+    #     if concentration_without_zeros.shape[0] != 0:
+    #         mean_concentration = np.mean(concentration_without_zeros.detach().numpy())
+    #         std_concentration = np.std(concentration_without_zeros.detach().numpy())
+    #         self.means_concentration.append(mean_concentration)
+    #         self.std_concentration.append(std_concentration)
+    #         m = Dirichlet(concentration_without_zeros)
+    #         if (eval_mode):
+    #             dirichlet_action = concentration_without_zeros / (concentration_without_zeros.sum() + 1e-16)
+    #         else:
+    #             dirichlet_action = m.rsample()
+    #         dirichlet_action_np = list(dirichlet_action.detach().numpy())
+    #         log_prob_dirichlet = m.log_prob(dirichlet_action)
+    #     else:
+    #         log_prob_dirichlet = 0
+    #     self.saved_actions.append(SavedAction(log_prob_dirichlet+log_prob_for_zeros, value))
+    #     action_np = []
+    #     dirichlet_idx = 0
+    #     for node in range(non_zero.shape[0]):
+    #         if sampled_zero_bool_arr[node]:
+    #             action_np.append(0.)
+    #         else:
+    #             action_np.append(dirichlet_action_np[dirichlet_idx])
+    #             dirichlet_idx += 1
+    #     return action_np
 
     def training_step(self):
         R = 0

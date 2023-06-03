@@ -1,0 +1,117 @@
+{
+    "os": "Linux-5.15.0-1036-aws-x86_64-with-glibc2.31",
+    "python": "3.10.11",
+    "heartbeatAt": "2023-06-02T23:46:09.638243",
+    "startedAt": "2023-06-02T23:46:09.286645",
+    "docker": null,
+    "cuda": null,
+    "args": [],
+    "state": "running",
+    "program": "/home/ubuntu/RL-EAMOD-Public/gnn-rl-for-eamod-main/main.py",
+    "codePath": "gnn-rl-for-eamod-main/main.py",
+    "git": {
+        "remote": "https://github.com/Aaryan0404/RL-EAMOD-Public.git",
+        "commit": "3e22c79e206fb005b9024b44e4b4a4acaf03c0ff"
+    },
+    "email": null,
+    "root": "/home/ubuntu/RL-EAMOD-Public",
+    "host": "ip-172-31-16-117",
+    "username": "ubuntu",
+    "executable": "/opt/conda/envs/amod/bin/python",
+    "cpu_count": 8,
+    "cpu_count_logical": 16,
+    "cpu_freq": {
+        "current": 2900.2439999999992,
+        "min": 0.0,
+        "max": 0.0
+    },
+    "cpu_freq_per_core": [
+        {
+            "current": 2900.244,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 2900.244,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 2900.244,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 2900.244,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 2900.244,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 2900.244,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 2900.244,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 2900.244,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 2900.244,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 2900.244,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 2900.244,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 2900.244,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 2900.244,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 2900.244,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 2900.244,
+            "min": 0.0,
+            "max": 0.0
+        },
+        {
+            "current": 2900.244,
+            "min": 0.0,
+            "max": 0.0
+        }
+    ],
+    "disk": {
+        "total": 96.86393737792969,
+        "used": 32.84893035888672
+    },
+    "memory": {
+        "total": 29.351524353027344
+    }
+}
