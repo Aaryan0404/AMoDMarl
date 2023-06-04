@@ -62,9 +62,12 @@ mpc_horizon = args.mpc_horizon
 
 if args.toy:
     problem_folder = 'Toy'
-    file_path = os.path.join('.', 'data', problem_folder, 'scenario_test_6_1x2_flip.json')
-    experiment = file_path +  '_mpc_horizon_' + str(mpc_horizon)
-    energy_dist_path = os.path.join('.', 'data', problem_folder,  'energy_distance_1x2.npy')
+    # file_path = os.path.join('.', 'data', problem_folder, 'scenario_test_6_1x2_flip.json')
+    # experiment = file_path +  '_mpc_horizon_' + str(mpc_horizon)
+    # energy_dist_path = os.path.join('.', 'data', problem_folder,  'energy_distance_1x2.npy')
+    file_path = os.path.join('data', problem_folder, 'scenario_test_3_2.json')
+    experiment = 'training_' + problem_folder+ '_' + str(args.max_episodes) + '_episodes_T_' + str(args.T) + file_path
+    energy_dist_path = os.path.join('data', problem_folder,  'energy_distance_3x2.npy')
     scenario = create_scenario(file_path, energy_dist_path)
     env = AMoD(scenario)
     tf = env.tf
