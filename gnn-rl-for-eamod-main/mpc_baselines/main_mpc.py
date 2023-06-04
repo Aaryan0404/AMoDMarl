@@ -13,6 +13,7 @@ import gurobipy as gp
 import json
 import wandb
 import pickle
+import math
 
 def create_scenario(json_file_path, energy_file_path, seed=10):
     f = open(json_file_path)
@@ -28,6 +29,12 @@ def create_scenario(json_file_path, energy_file_path, seed=10):
     chargers = data['chargeLocations']
     cars_per_station_capacity = data['carsPerStationCapacity']
     p_energy = data["energy_prices"]
+
+    t = 0
+    for element in p_energy:
+        element = (math.ceil(10 * element * np.sin(t/(2*np.pi))))/(10.0)
+        t += 1
+
     time_granularity = data["timeGranularity"]
     operational_cost_per_timestep = data['operationalCostPerTimestep']
 

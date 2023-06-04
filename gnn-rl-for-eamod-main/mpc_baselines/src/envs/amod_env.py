@@ -449,6 +449,7 @@ class Scenario:
                 t,o,d,v,p = item['time_stamp'], item['origin'], item['destination'], item['demand'], item['price']
                 if (o,d) not in self.demand_input:
                     self.demand_input[o,d], self.p[o,d] = defaultdict(float), defaultdict(float)
+                v = v * ((np.log((t + 1))) ** 2) # demand is randomized
                 self.demand_input[o,d][t] += v*demand_ratio
                 self.p[o,d][t] += p*demand_ratio
             
