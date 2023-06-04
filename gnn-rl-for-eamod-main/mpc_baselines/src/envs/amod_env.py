@@ -559,7 +559,7 @@ class Scenario:
                             self.G.nodes[(region,c)]['accInit'] = 0
                 break  # only need the first time step, if I want variable acc, I need to change this
 
-            self.tripAttr = self.tripAttr # randomly generated demand
+            self.tripAttr = tripAttr # randomly generated demand
 
     def add_charge_edges(self):
         counter = 0
