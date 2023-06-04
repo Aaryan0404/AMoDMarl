@@ -59,13 +59,55 @@ class GNNParser():
                          ).view(1, 1, self.env.number_nodes).float(),
             torch.tensor([[(self.env.acc[n][self.env.time+1] + self.env.dacc[n][t])*self.scale_factor for n in self.env.nodes]
                           for t in range(self.env.time+1, self.env.time+self.T+1)]).view(1, self.T, self.env.number_nodes).float(),
-            torch.tensor([[sum([self.env.price[o[0], j][t]*self.scale_factor*self.price_scale_factor*(self.env.demand[o[0], j][t])*((o[1]-self.env.scenario.energy_distance[o[0], j]) >= int(not self.env.scenario.charging_stations[j]))
+            torch.tensor([[sum([self.env.price[o[0], j][t] * self.scale_factor * self.price_scale_factor * (self.env.demand[o[0], j][t])*((o[1]-self.env.scenario.energy_distance[o[0], j]) >= int(not self.env.scenario.charging_stations[j]))
                           for j in self.env.region]) for o in self.env.nodes] for t in range(self.env.time+1, self.env.time+self.T+1)]).view(1, self.T, self.env.number_nodes).float()),
                       dim=1).squeeze(0).view(self.input_size, self.env.number_nodes).T
         edge_index = self.env.gcn_edge_idx
         # edge_weight = self.env.edge_weight
         data = Data(x, edge_index)
         return data
+
+    # def parse_obs(self):
+    #     # Part 1: Current charge levels
+    #     current_charge = [float(n[1])/self.env.scenario.number_charge_levels for n in self.env.nodes]
+    #     current_charge_tensor = torch.tensor(current_charge).view(1, 1, self.env.number_nodes).float()
+
+    #     # Part 2: Current state of charge
+    #     current_state_charge = [self.env.acc[n][self.env.time+1]*self.scale_factor for n in self.env.nodes]
+    #     current_state_charge_tensor = torch.tensor(current_state_charge).view(1, 1, self.env.number_nodes).float()
+
+    #     # Part 3: Future state of charge
+    #     future_state_charge = [[(self.env.acc[n][self.env.time+1] + self.env.dacc[n][t])*self.scale_factor 
+    #                             for n in self.env.nodes]
+    #                             for t in range(self.env.time+1, self.env.time+self.T+1)]
+    #     future_state_charge_tensor = torch.tensor(future_state_charge).view(1, self.T, self.env.number_nodes).float()
+
+    #     # Part 4: Future prices
+    #     future_prices = [
+    #         [
+    #             sum([
+    #                 self.env.price[o[0], j][t] * self.scale_factor * self.price_scale_factor * self.env.demand[o[0], j][t]
+    #                 *((o[1]-self.env.scenario.energy_distance[o[0], j]) >= int(not self.env.scenario.charging_stations[j]))
+    #                 for j in self.env.region
+    #             ])
+    #             for o in self.env.nodes
+    #         ]
+    #         for t in range(self.env.time+1, self.env.time+self.T+1)
+    #     ]
+    #     future_prices_tensor = torch.tensor(future_prices).view(1, self.T, self.env.number_nodes).float()
+
+    #     # Concatenation
+    #     x = torch.cat(
+    #         (current_charge_tensor, current_state_charge_tensor, future_state_charge_tensor, future_prices_tensor),
+    #         dim=1
+    #     ).squeeze(0).view(self.input_size, self.env.number_nodes).T
+
+    #     # Edge Index and Data
+    #     edge_index = self.env.gcn_edge_idx
+    #     data = Data(x, edge_index)
+
+    #     return data
+
 
     # def parse_obs(self):
     #     # nodes
@@ -483,7 +525,7 @@ class A2C(nn.Module):
         # actor: computes concentration parameters of a Dirichlet distribution
         a_out_concentration, a_out_is_zero = self.actor(x)
         concentration = F.softplus(a_out_concentration).reshape(-1) + jitter
-        non_zero = torch.sigmoid(a_out_is_zero).reshape(-1)
+        non_zero = torch.sigmoid(a_out_is_zero).reshape(-1) + jitter
 
         # critic: estimates V(s_t)
         value = self.critic(x)
@@ -500,16 +542,15 @@ class A2C(nn.Module):
         # return a_probs, value
 
 
-
         # MPNN implementation
         # actor: computes concentration parameters of a Dirichlet distribution
-        a_out_concentration, a_out_is_zero = self.actor(x.x, x.edge_index)
-        concentration = F.softplus(a_out_concentration).reshape(-1) + jitter
-        non_zero = torch.sigmoid(a_out_is_zero).reshape(-1)
+        # a_out_concentration, a_out_is_zero = self.actor(x.x, x.edge_index)
+        # concentration = F.softplus(a_out_concentration).reshape(-1) + jitter
+        # non_zero = torch.sigmoid(a_out_is_zero).reshape(-1)
         
         # critic: estimates V(s_t)
-        value = self.critic(x.x, x.edge_index)
-        return concentration, non_zero, value
+        # value = self.critic(x.x, x.edge_index)
+        # return concentration, non_zero, value
 
     def parse_obs(self):
         state = self.obs_parser.parse_obs()
