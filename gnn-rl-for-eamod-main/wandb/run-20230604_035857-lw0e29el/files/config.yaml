@@ -1,0 +1,86 @@
+wandb_version: 1
+
+number_chargelevels:
+  desc: null
+  value: 6
+number_spatial_nodes:
+  desc: null
+  value: 2
+dataset:
+  desc: null
+  value: data/Toy/scenario_test_6_1x2_flip.json
+episodes:
+  desc: null
+  value: 16000
+number_vehicles_per_node_init:
+  desc: null
+  value: 8
+charging_stations:
+  desc: null
+  value:
+  - true
+  - true
+charging_station_capacities:
+  desc: null
+  value:
+  - 1000.0
+  - 1000.0
+learning_rate_actor:
+  desc: null
+  value: 0.001
+learning_rate_critic:
+  desc: null
+  value: 0.001
+gradient_norm_clip_actor:
+  desc: null
+  value: 0.5
+gradient_norm_clip_critic:
+  desc: null
+  value: 0.5
+scale_factor:
+  desc: null
+  value: 0.01
+scale_price:
+  desc: null
+  value: 0.1
+time_horizon:
+  desc: null
+  value: 10
+episode_length:
+  desc: null
+  value: 20
+seed:
+  desc: null
+  value: 10
+charge_levels_per_timestep:
+  desc: null
+  value: 4
+licence:
+  desc: null
+  value: Karthik2
+_wandb:
+  desc: null
+  value:
+    python_version: 3.10.11
+    cli_version: 0.15.3
+    framework: torch
+    is_jupyter_run: false
+    is_kaggle_kernel: false
+    start_time: 1685851137.594164
+    t:
+      1:
+      - 1
+      - 55
+      - 77
+      2:
+      - 1
+      - 55
+      - 77
+      3:
+      - 13
+      - 16
+      - 23
+      4: 3.10.11
+      5: 0.15.3
+      8:
+      - 5

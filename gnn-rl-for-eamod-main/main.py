@@ -12,9 +12,11 @@ import os
 import wandb
 import pickle
 import time
+import math
 
 from src.envs.amod_env import Scenario, AMoD
 from src.algos.a2c_gnn import A2C
+from src.algos.a2c_gnn_2 import A2C as A2C_2
 from src.misc.utils import dictsum
 
 def create_scenario(json_file_path, energy_file_path, seed=10):
@@ -23,7 +25,9 @@ def create_scenario(json_file_path, energy_file_path, seed=10):
     data = json.load(f)
     tripAttr = data['demand']
     reb_time = data['rebTime']
-    total_acc = data['totalAcc']
+
+    total_acc = data['totalAcc'] 
+
     spatial_nodes = data['spatialNodes']
     tf = data['episodeLength']
     number_charge_levels = data['chargelevels']
@@ -31,6 +35,12 @@ def create_scenario(json_file_path, energy_file_path, seed=10):
     chargers = data['chargeLocations']
     cars_per_station_capacity = data['carsPerStationCapacity']
     p_energy = data["energy_prices"]
+
+    t = 0
+    for element in p_energy:
+        element = (math.ceil(10 * element * np.sin(t/(2*np.pi))))/(10.0)
+        t += 1
+
     time_granularity = data["timeGranularity"]
     operational_cost_per_timestep = data['operationalCostPerTimestep']
 
@@ -81,14 +91,15 @@ test = args.test
 T = args.T
 
 problem_folder = 'Toy'
-file_path = os.path.join('data', problem_folder, 'scenario_test_6_1x2_flip.json')
+file_path = os.path.join('data', problem_folder, 'scenario_test_3_2.json')
 experiment = 'training_' + problem_folder+ '_' + str(args.max_episodes) + '_episodes_T_' + str(args.T) + file_path
-energy_dist_path = os.path.join('data', problem_folder,  'energy_distance_1x2.npy')
+energy_dist_path = os.path.join('data', problem_folder,  'energy_distance_3x2.npy')
 scenario = create_scenario(file_path, energy_dist_path)
 env = AMoD(scenario)
 scale_factor = 0.01
 scale_price = 0.1
 model = A2C(env=env, T=T, lr_a=lr_a, lr_c=lr_c, grad_norm_clip_a=grad_norm_clip_a, grad_norm_clip_c=grad_norm_clip_c, seed=seed, scale_factor=scale_factor, scale_price=scale_price).to(device)
+model_2 = A2C_2(env=env, T=T, lr_a=lr_a, lr_c=lr_c, grad_norm_clip_a=grad_norm_clip_a, grad_norm_clip_c=grad_norm_clip_c, seed=seed, scale_factor=scale_factor, scale_price=scale_price).to(device)
 tf = env.tf
 
 # if args.toy:
@@ -134,15 +145,6 @@ if test:
     experiment += "_test_evaluation"
 experiment += "_RL_approach_constraint"
 
-# set Gurobi environment mine
-# gurobi_env = gp.Env(empty=True)
-# gurobi = "Dominik"
-# gurobi_env.setParam('WLSACCESSID', '8cad5801-28d8-4e2e-909e-3a7144c12eb5')
-# gurobi_env.setParam('WLSSECRET', 'a25b880b-8262-492f-a2e5-e36d6d78cc98')
-# gurobi_env.setParam('LICENSEID', 799876)
-# gurobi_env.setParam("OutputFlag",0)
-# gurobi_env.start()
-
 # set Gurobi environment Justin
 # gurobi_env = gp.Env(empty=True)
 # gurobi = "Justin"
@@ -152,16 +154,7 @@ experiment += "_RL_approach_constraint"
 # gurobi_env.setParam("OutputFlag",0)
 # gurobi_env.start()
 
-# set Gurobi environment Karthik
-# gurobi_env = gp.Env(empty=True)
-# gurobi = "Karthik"
-# gurobi_env.setParam('WLSACCESSID', 'ad632625-ffd3-460a-92a0-6fef5415c40d')
-# gurobi_env.setParam('WLSSECRET', '60bd07d8-4295-4206-96e2-bb0a99b01c2f')
-# gurobi_env.setParam('LICENSEID', 849913)
-# gurobi_env.setParam("OutputFlag",0)
-# gurobi_env.start()
-
-# set Gurobi environment Karthik2
+# # set Gurobi environment Karthik2
 gurobi_env = gp.Env(empty=True)
 gurobi = "Karthik2"
 gurobi_env.setParam('WLSACCESSID', 'bc0f99a5-8537-45c3-89d9-53368d17e080')
@@ -169,15 +162,6 @@ gurobi_env.setParam('WLSSECRET', '6dddd313-d8d4-4647-98ab-d6df872c6eaa')
 gurobi_env.setParam('LICENSEID', 799870)
 gurobi_env.setParam("OutputFlag",0)
 gurobi_env.start()
-
-# set Gurobi environment Karthik
-# gurobi_env = gp.Env(empty=True)
-# gurobi = "Karthik"
-# gurobi_env.setParam('WLSACCESSID', 'ad632625-ffd3-460a-92a0-6fef5415c40d')
-# gurobi_env.setParam('WLSSECRET', '60bd07d8-4295-4206-96e2-bb0a99b01c2f')
-# gurobi_env.setParam('LICENSEID', 849913)
-# gurobi_env.setParam("OutputFlag",0)
-# gurobi_env.start()
 
 # set up wandb
 wandb.init(
@@ -229,6 +213,8 @@ for region in env.nodes_spatial:
     for destination in env.nodes_spatial:
         for t in range(env.tf):
             total_demand_per_spatial_node[region] += env.demand[region,destination][t]
+k = 250
+grad_prop = True
 for i_episode in epochs:
     desired_accumulations_spatial_nodes = np.zeros(env.scenario.spatial_nodes)
     bool_random_random_demand = not test # only use random demand during training
@@ -240,6 +226,8 @@ for i_episode in epochs:
     action_tracker = {}
     for step in range(T):
         # take matching step (Step 1 in paper)
+        # if ((i_episode < k)):
+            # linear optimization
         if step == 0 and i_episode == 0:
             # initialize optimization problem in the first step
             pax_flows_solver = PaxFlowsSolver(env=env,gurobi_env=gurobi_env)
@@ -248,26 +236,40 @@ for i_episode in epochs:
             pax_flows_solver.update_objective()
         _, paxreward, done, info_pax = env.pax_step(pax_flows_solver=pax_flows_solver, episode=i_episode)
         episode_reward += paxreward
-        
-        # use GNN-RL policy (Step 2 in paper)
-        if use_equal_distr_baseline:
-            action_rl = model.select_equal_action() # selects equal distr.
-            a_loss = 0
-            v_loss = 0
-            mean_value = 0
-            mean_concentration = 0 
-            mean_std = 0
-            mean_log_prob = 0
-            std_log_prob = 0
-        else:
-            # vanilla GCN
-            action_rl = model.select_action()
+        # else:
+        #     # RL 1
+        #     if ((k < i_episode < 2 * k) or (3 * k < i_episode < 4 * k) or (5 * k < i_episode < 6 * k) or (7 * k < i_episode < 8 * k) or (9 * k < i_episode < 10 * k) or (11 * k < i_episode < 12 * k) or (13 * k < i_episode < 14 * k) or (15 * k < i_episode < 16 * k)):
+        #         for param in model_2.parameters():
+        #             param.requires_grad = True
+        #             grad_prop = True
+        #     else:
+        #         for param in model_2.parameters():
+        #             param.requires_grad = False
+        #             grad_prop = False
+        #     action_rl_one = model_2.select_action()
+        #     # calculate a flow-tuple of length number of edges by calculating 
+        #     # difference between node_destination and node_origin
+        #     flow = []
+        #     edges = env.edges
+        #     for node_destination_idx in range(env.number_nodes):
+        #         for node_origin_idx in range(env.number_nodes):
+        #             edge = (env.nodes[node_origin_idx], env.nodes[node_destination_idx])
+        #             if edge in edges:
+        #                 total_acc = sum(env.acc[n][env.time] for n in env.nodes)
+        #                 flow.append(total_acc * (action_rl_one[node_destination_idx] - action_rl_one[node_origin_idx]))
+        #     _ , paxreward, done, info_pax = env.pax_step(paxAction=flow, episode=i_episode)
+        #     episode_reward += paxreward
 
-            # MPNN implementation
-            # action_rl = model.select_action_MPNN()
-
-            # GAT implementation
-            # action_rl = model.select_action_GAT()
+        # # use GNN-RL policy (Step 2 in paper)
+        # if ((k < i_episode < 2 * k) or (3 * k < i_episode < 4 * k) or (5 * k < i_episode < 6 * k) or (7 * k < i_episode < 8 * k) or (9 * k < i_episode < 10 * k) or (11 * k < i_episode < 12 * k) or (13 * k < i_episode < 14 * k) or (15 * k < i_episode < 16 * k)):
+        #     for param in model.parameters():
+        #         param.requires_grad = False
+        #         grad_prop = False
+        # else:
+        #     for param in model.parameters():
+        #         param.requires_grad = True
+        #         grad_prop = True
+        action_rl = model.select_action()           
 
         # transform sample from Dirichlet into actual vehicle counts (i.e. (x1*x2*..*xn)*num_vehicles)
         total_idle_acc = sum(env.acc[n][env.time+1] for n in env.nodes)
@@ -311,7 +313,8 @@ for i_episode in epochs:
             break
     # perform on-policy backprop
     if not use_equal_distr_baseline:
-        a_loss, v_loss, mean_value, mean_concentration, mean_std, mean_log_prob, std_log_prob = model.training_step()
+        if grad_prop:
+            a_loss, v_loss, mean_value, mean_concentration, mean_std, mean_log_prob, std_log_prob = model.training_step()
 
     # Send current statistics to screen was episode_reward, episode_served_demand, episode_rebalancing_cost
     epochs.set_description(f"Episode {i_episode+1} | Reward: {episode_reward:.2f} | ServedDemand: {episode_served_demand:.2f} | Reb. Cost: {episode_rebalancing_cost:.2f}")

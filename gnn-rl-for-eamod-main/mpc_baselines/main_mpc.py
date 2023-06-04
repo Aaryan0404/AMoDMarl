@@ -74,30 +74,12 @@ else:
 print('mpc_horizon', mpc_horizon, 'episodeLength', tf)
 experiment += "_RL_approach_constraint"
 
-# set Gurobi environment mine
-# gurobi_env = gp.Env(empty=True)
-# gurobi = "Dominik"
-# gurobi_env.setParam('WLSACCESSID', '8cad5801-28d8-4e2e-909e-3a7144c12eb5')
-# gurobi_env.setParam('WLSSECRET', 'a25b880b-8262-492f-a2e5-e36d6d78cc98')
-# gurobi_env.setParam('LICENSEID', 799876)
-# gurobi_env.setParam("OutputFlag",0)
-# gurobi_env.start()
-
 # set Gurobi environment Justin
 # gurobi_env = gp.Env(empty=True)
 # gurobi = "Justin"
 # gurobi_env.setParam('WLSACCESSID', '82115472-a780-40e8-9297-b9c92969b6d4')
 # gurobi_env.setParam('WLSSECRET', '0c069810-f45f-4920-a6cf-3f174425e641')
 # gurobi_env.setParam('LICENSEID', 844698)
-# gurobi_env.setParam("OutputFlag",0)
-# gurobi_env.start()
-
-# set Gurobi environment Justin
-# gurobi_env = gp.Env(empty=True)
-# gurobi = "Karthik"
-# gurobi_env.setParam('WLSACCESSID', 'ad632625-ffd3-460a-92a0-6fef5415c40d')
-# gurobi_env.setParam('WLSSECRET', '60bd07d8-4295-4206-96e2-bb0a99b01c2f')
-# gurobi_env.setParam('LICENSEID', 849913)
 # gurobi_env.setParam("OutputFlag",0)
 # gurobi_env.start()
 
