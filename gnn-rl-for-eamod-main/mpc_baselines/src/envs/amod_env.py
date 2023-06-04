@@ -495,47 +495,71 @@ class Scenario:
                         self.demand_input[o[0],d[0]][t] = 0
                         self.p[o[0],d[0]][t] = 0
 
+            # for item in total_acc:
+            #     hr, acc = item['hour'], item['acc']
+            #     number_vehicles_distr = 0
+            #     for region in self.G_spatial.nodes:
+            #         self.G_spatial.nodes[region]['accInit'] = int(0)
+            #         # TODO: uncommment
+            #         # for c in range(self.number_charge_levels):
+            #         #     cut_off_charge = int(0.5*self.number_charge_levels)
+            #         #     print("cutoff charge init", cut_off_charge)
+            #         #     number_of_used_charges = (self.number_charge_levels-cut_off_charge)
+            #         #     number_cars_per_node = int(acc/(len(list(self.G_spatial.nodes))*number_of_used_charges))
+            #         #     if c >= cut_off_charge:
+            #         #         self.G.nodes[(region,c)]['accInit'] = number_cars_per_node
+            #         #         self.G_spatial.nodes[region]['accInit'] += number_cars_per_node
+            #         #     else:
+            #         #         self.G.nodes[(region,c)]['accInit'] = 0
+            #         # only bottom 60%
+            #         for c in range(self.number_charge_levels):
+            #             cut_off_charge = int(1.*self.number_charge_levels)
+            #             print("cutoff charge init", cut_off_charge)
+            #             number_of_used_charges = cut_off_charge
+            #             number_cars_per_node = int(acc/(len(list(self.G_spatial.nodes))*number_of_used_charges))
+            #             if c <= cut_off_charge:
+            #                 self.G.nodes[(region,c)]['accInit'] = number_cars_per_node
+            #                 number_vehicles_distr += number_cars_per_node
+            #                 self.G_spatial.nodes[region]['accInit'] += number_cars_per_node
+            #             else:
+            #                 self.G.nodes[(region,c)]['accInit'] = 0
+            #     print(acc, number_vehicles_distr)
+            #         # TODO: delete
+            #         # for c in range(self.number_charge_levels):
+            #         #     number_cars_per_node = int(acc/(len(list(self.G_spatial.nodes))))
+            #         #     if c == number_charge_levels - 1:
+            #         #         self.G.nodes[(region,c)]['accInit'] = number_cars_per_node
+            #         #         self.G_spatial.nodes[region]['accInit'] += number_cars_per_node
+            #         #     else:
+            #         #         self.G.nodes[(region,c)]['accInit'] = 0
+
+                        
+            #     break  # only need the first time step, if I want variable acc, I need to change this
+
             for item in total_acc:
                 hr, acc = item['hour'], item['acc']
-                number_vehicles_distr = 0
+
+                number_of_used_charges = int(1.*self.number_charge_levels)
+                length_of_random_array = len(list(self.G_spatial.nodes)) * number_of_used_charges
+                nodes_randomized_initAccs = np.random.multinomial(acc, np.ones(length_of_random_array)/length_of_random_array)
+
+                i = 0
                 for region in self.G_spatial.nodes:
                     self.G_spatial.nodes[region]['accInit'] = int(0)
-                    # TODO: uncommment
-                    # for c in range(self.number_charge_levels):
-                    #     cut_off_charge = int(0.5*self.number_charge_levels)
-                    #     print("cutoff charge init", cut_off_charge)
-                    #     number_of_used_charges = (self.number_charge_levels-cut_off_charge)
-                    #     number_cars_per_node = int(acc/(len(list(self.G_spatial.nodes))*number_of_used_charges))
-                    #     if c >= cut_off_charge:
-                    #         self.G.nodes[(region,c)]['accInit'] = number_cars_per_node
-                    #         self.G_spatial.nodes[region]['accInit'] += number_cars_per_node
-                    #     else:
-                    #         self.G.nodes[(region,c)]['accInit'] = 0
-                    # only bottom 60%
                     for c in range(self.number_charge_levels):
                         cut_off_charge = int(1.*self.number_charge_levels)
                         print("cutoff charge init", cut_off_charge)
                         number_of_used_charges = cut_off_charge
-                        number_cars_per_node = int(acc/(len(list(self.G_spatial.nodes))*number_of_used_charges))
+                        number_cars_per_node = int(nodes_randomized_initAccs[i])
+                        i += 1
                         if c <= cut_off_charge:
                             self.G.nodes[(region,c)]['accInit'] = number_cars_per_node
-                            number_vehicles_distr += number_cars_per_node
                             self.G_spatial.nodes[region]['accInit'] += number_cars_per_node
                         else:
                             self.G.nodes[(region,c)]['accInit'] = 0
-                print(acc, number_vehicles_distr)
-                    # TODO: delete
-                    # for c in range(self.number_charge_levels):
-                    #     number_cars_per_node = int(acc/(len(list(self.G_spatial.nodes))))
-                    #     if c == number_charge_levels - 1:
-                    #         self.G.nodes[(region,c)]['accInit'] = number_cars_per_node
-                    #         self.G_spatial.nodes[region]['accInit'] += number_cars_per_node
-                    #     else:
-                    #         self.G.nodes[(region,c)]['accInit'] = 0
-
-                        
                 break  # only need the first time step, if I want variable acc, I need to change this
-            self.tripAttr = self.get_random_demand() # randomly generated demand
+
+            self.tripAttr = self.tripAttr # randomly generated demand
 
     def add_charge_edges(self):
         counter = 0
