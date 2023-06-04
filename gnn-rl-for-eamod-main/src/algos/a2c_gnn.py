@@ -64,7 +64,29 @@ class GNNParser():
                       dim=1).squeeze(0).view(self.input_size, self.env.number_nodes).T
         edge_index = self.env.gcn_edge_idx
         # edge_weight = self.env.edge_weight
-        data = Data(x, edge_index)
+
+        # edge features for MPNN implementation
+        all_times = []
+        # Loop over edges, get 'time' values for each edge, and add to 'all_times' list.
+        edges = self.env.edges
+        for e in edges:
+            if e in self.env.edges:
+                i, j = self.env.edges[self.env.edges.index(e)]
+                times_for_e = list(self.env.G.edges[i, j]['time'].values())
+            else:
+                times_for_e = [0]
+            while (len(times_for_e) < self.input_size):
+                times_for_e.append(0)
+            all_times.extend(times_for_e)
+        # Convert the list of 'time' values into a tensor.
+        tensor = torch.tensor(all_times)
+        e = (tensor.view(1, np.prod(tensor.shape)).float()).squeeze(0).view(self.input_size, len(edges)).T
+
+        print("x shape: " + str(x.shape))
+        print("edge_index shape: " + str(edge_index.shape)) 
+        print("edge_attr shape: " + str(e.shape))
+        data = Data(x, edge_index, edge_attr=e)
+        
         return data
 
     # def parse_obs(self):
@@ -325,47 +347,47 @@ class GNNActor(nn.Module):
     """
 
     # regular GCN implementation
-    def __init__(self, in_channels):
-        super().__init__()
-        self.conv1 = GCNConv(in_channels, in_channels*4)
-        self.conv2 = GCNConv(in_channels*4, in_channels*2)
-        self.conv3 = GCNConv(in_channels*2, in_channels)
-        self.lin1 = nn.Linear(in_channels, 128)
-        self.lin2 = nn.Linear(128, 64)
-        self.lin3 = nn.Linear(64, 32)
-        self.lin4 = nn.Linear(32, 2)
+    # def __init__(self, in_channels):
+    #     super().__init__()
+    #     self.conv1 = GCNConv(in_channels, in_channels*4)
+    #     self.conv2 = GCNConv(in_channels*4, in_channels*2)
+    #     self.conv3 = GCNConv(in_channels*2, in_channels)
+    #     self.lin1 = nn.Linear(in_channels, 128)
+    #     self.lin2 = nn.Linear(128, 64)
+    #     self.lin3 = nn.Linear(64, 32)
+    #     self.lin4 = nn.Linear(32, 2)
 
-    def forward(self, data):
-        # data = data.to("cuda:0")
-        out = F.relu(self.conv1(data.x, data.edge_index))  # , data.edge_weight
-        out = F.relu(self.conv2(out, data.edge_index))
-        out = F.relu(self.conv3(out, data.edge_index))
-        x = out + data.x
-        x = F.relu(self.lin1(x))
-        x = F.relu(self.lin2(x))
-        x = F.relu(self.lin3(x))
-        x = self.lin4(x)
-        return x[:, 0], x[:, 1]
+    # def forward(self, data):
+    #     # data = data.to("cuda:0")
+    #     out = F.relu(self.conv1(data.x, data.edge_index))  # , data.edge_weight
+    #     out = F.relu(self.conv2(out, data.edge_index))
+    #     out = F.relu(self.conv3(out, data.edge_index))
+    #     x = out + data.x
+    #     x = F.relu(self.lin1(x))
+    #     x = F.relu(self.lin2(x))
+    #     x = F.relu(self.lin3(x))
+    #     x = self.lin4(x)
+    #     return x[:, 0], x[:, 1]
 
     # MPNN implementation
-    # def __init__(self, node_size=4, edge_size=0, hidden_dim=32, out_channels=1):
-    #     super(GNNActor, self).__init__()
-    #     self.hidden_dim = hidden_dim
+    def __init__(self, node_size=4, edge_size=0, hidden_dim=32, out_channels=1):
+        super(GNNActor, self).__init__()
+        self.hidden_dim = hidden_dim
         
-    #     self.conv1 = EdgeConv(node_size, edge_size, hidden_dim)
+        self.conv1 = EdgeConv(node_size, edge_size, hidden_dim)
 
-    #     # input size = 22
-    #     self.h_to_mu = nn.Linear(22 + hidden_dim, out_channels)
-    #     self.h_to_sigma = nn.Linear(22 + hidden_dim, out_channels)
-    #     self.h_to_concentration = nn.Linear(22 + hidden_dim, out_channels)
+        # input size = 22
+        self.h_to_mu = nn.Linear(22 + hidden_dim, out_channels)
+        self.h_to_sigma = nn.Linear(22 + hidden_dim, out_channels)
+        self.h_to_concentration = nn.Linear(22 + hidden_dim, out_channels)
 
-    # def forward(self, x, edge_index, edge_attr):
-    #     x_pp = self.conv1(x, edge_index, edge_attr)
-    #     x_pp = torch.cat([x, x_pp], dim=1)
+    def forward(self, x, edge_index, edge_attr):
+        x_pp = self.conv1(x, edge_index, edge_attr)
+        x_pp = torch.cat([x, x_pp], dim=1)
         
-    #     mu, sigma = F.softplus(self.h_to_mu(x_pp)), F.softplus(self.h_to_sigma(x_pp))
-    #     alpha = F.softplus(self.h_to_concentration(x_pp))
-    #     return (mu, sigma), alpha
+        mu, sigma = F.softplus(self.h_to_mu(x_pp)), F.softplus(self.h_to_sigma(x_pp))
+        alpha = F.softplus(self.h_to_concentration(x_pp))
+        return (mu, sigma), alpha
 
     # GAT implementation
     # def __init__(self, in_channels, dim_h=16, out_channels=2, heads=16, dropout_rate=0):
@@ -397,45 +419,45 @@ class GNNCritic(nn.Module):
     """
 
     # regular GCN implementation
-    def __init__(self, in_channels):
-        super().__init__()
-        self.conv1 = GCNConv(in_channels, in_channels*4)
-        self.conv2 = GCNConv(in_channels*4, in_channels*2)
-        self.conv3 = GCNConv(in_channels*2, in_channels)
-        self.lin1 = nn.Linear(in_channels, 128)
-        self.lin2 = nn.Linear(128, 64)
-        self.lin3 = nn.Linear(64, 32)
-        self.lin4 = nn.Linear(32, 1)
+    # def __init__(self, in_channels):
+    #     super().__init__()
+    #     self.conv1 = GCNConv(in_channels, in_channels*4)
+    #     self.conv2 = GCNConv(in_channels*4, in_channels*2)
+    #     self.conv3 = GCNConv(in_channels*2, in_channels)
+    #     self.lin1 = nn.Linear(in_channels, 128)
+    #     self.lin2 = nn.Linear(128, 64)
+    #     self.lin3 = nn.Linear(64, 32)
+    #     self.lin4 = nn.Linear(32, 1)
 
-    def forward(self, data):
-        out = F.relu(self.conv1(data.x, data.edge_index))  # , data.edge_weight
-        out = F.relu(self.conv2(out, data.edge_index))
-        out = F.relu(self.conv3(out, data.edge_index))
-        x = out + data.x
-        x = torch.sum(x, dim=0)
-        x = F.relu(self.lin1(x))
-        x = F.relu(self.lin2(x))
-        x = F.relu(self.lin3(x))
-        x = self.lin4(x)
-        return x
+    # def forward(self, data):
+    #     out = F.relu(self.conv1(data.x, data.edge_index))  # , data.edge_weight
+    #     out = F.relu(self.conv2(out, data.edge_index))
+    #     out = F.relu(self.conv3(out, data.edge_index))
+    #     x = out + data.x
+    #     x = torch.sum(x, dim=0)
+    #     x = F.relu(self.lin1(x))
+    #     x = F.relu(self.lin2(x))
+    #     x = F.relu(self.lin3(x))
+    #     x = self.lin4(x)
+    #     return x
 
     # MPNN implementation
-    # def __init__(self, node_size=4, edge_size=2, hidden_dim=32, out_channels=1):
-    #     super(GNNCritic, self).__init__()
-    #     self.hidden_dim = hidden_dim
+    def __init__(self, node_size=4, edge_size=2, hidden_dim=32, out_channels=1):
+        super(GNNCritic, self).__init__()
+        self.hidden_dim = hidden_dim
 
-    #     # input size = 22
-    #     self.conv1 = EdgeConv(node_size, edge_size, hidden_dim)
-    #     self.g_to_v = nn.Linear(22 + hidden_dim, out_channels)
+        # input size = 22
+        self.conv1 = EdgeConv(node_size, edge_size, hidden_dim)
+        self.g_to_v = nn.Linear(22 + hidden_dim, out_channels)
 
-    # def forward(self, x, edge_index, edge_attr):
-    #     x_pp = self.conv1(x, edge_index, edge_attr)
+    def forward(self, x, edge_index, edge_attr):
+        x_pp = self.conv1(x, edge_index, edge_attr)
 
-    #     x_pp = torch.cat([x, x_pp], dim=1)
-    #     x_pp = torch.sum(x_pp, dim=0)
+        x_pp = torch.cat([x, x_pp], dim=1)
+        x_pp = torch.sum(x_pp, dim=0)
 
-    #     v = self.g_to_v(x_pp)
-    #     return v
+        v = self.g_to_v(x_pp)
+        return v
     
     # GAT implementation
     # def __init__(self, in_channels, dim_h=16, out_channels=1, heads=16, dropout_rate=0):
@@ -485,14 +507,14 @@ class A2C(nn.Module):
         self.device = device
 
         # regular GCN implementation
-        self.actor = GNNActor(in_channels=self.input_size)
-        self.critic = GNNCritic(in_channels=self.input_size)
-        self.obs_parser = GNNParser(self.env, T=T, input_size=self.input_size, scale_factor=scale_factor, scale_price=scale_price)
-
-        # MPNN implementation (specifically configured for V2 - default edges from AMoD plus self-loops = 32 edges for toy example)
         # self.actor = GNNActor(in_channels=self.input_size)
         # self.critic = GNNCritic(in_channels=self.input_size)
         # self.obs_parser = GNNParser(self.env, T=T, input_size=self.input_size, scale_factor=scale_factor, scale_price=scale_price)
+
+        # MPNN implementation (specifically configured for V2 - default edges from AMoD plus self-loops = 32 edges for toy example)
+        self.actor = GNNActor(in_channels=self.input_size)
+        self.critic = GNNCritic(in_channels=self.input_size)
+        self.obs_parser = GNNParser(self.env, T=T, input_size=self.input_size, scale_factor=scale_factor, scale_price=scale_price)
 
         self.optimizers = self.configure_optimizers()
 
@@ -522,27 +544,27 @@ class A2C(nn.Module):
         x = self.parse_obs().to(self.device)
 
         # regular GCN implementation
-        # actor: computes concentration parameters of a Dirichlet distribution
-        a_out_concentration, a_out_is_zero = self.actor(x)
-        concentration = F.softplus(a_out_concentration).reshape(-1) + jitter
-        non_zero = torch.sigmoid(a_out_is_zero).reshape(-1) + jitter
+        # # actor: computes concentration parameters of a Dirichlet distribution
+        # a_out_concentration, a_out_is_zero = self.actor(x)
+        # concentration = F.softplus(a_out_concentration).reshape(-1) + jitter
+        # non_zero = torch.sigmoid(a_out_is_zero).reshape(-1) + jitter
 
-        # critic: estimates V(s_t)
-        value = self.critic(x)
-        return concentration, non_zero, value
+        # # critic: estimates V(s_t)
+        # value = self.critic(x)
+        # return concentration, non_zero, value
 
 
         # MPNN implementation
         # # parse raw environment data in model format
         # # actor: computes concentration parameters of a X distribution
-        # a_probs = self.actor(x.x, x.edge_index, x.edge_attr)
+        a_probs = self.actor(x.x, x.edge_index, x.edge_attr)
         
         # # critic: estimates V(s_t)
-        # value = self.critic(x.x, x.edge_index, x.edge_attr)
-        # return a_probs, value
+        value = self.critic(x.x, x.edge_index, x.edge_attr)
+        return a_probs, value
 
 
-        # MPNN implementation
+        # GAT implementation
         # actor: computes concentration parameters of a Dirichlet distribution
         # a_out_concentration, a_out_is_zero = self.actor(x.x, x.edge_index)
         # concentration = F.softplus(a_out_concentration).reshape(-1) + jitter

@@ -213,7 +213,7 @@ for region in env.nodes_spatial:
     for destination in env.nodes_spatial:
         for t in range(env.tf):
             total_demand_per_spatial_node[region] += env.demand[region,destination][t]
-k = 250
+k = 8000
 grad_prop = True
 for i_episode in epochs:
     desired_accumulations_spatial_nodes = np.zeros(env.scenario.spatial_nodes)
@@ -226,50 +226,50 @@ for i_episode in epochs:
     action_tracker = {}
     for step in range(T):
         # take matching step (Step 1 in paper)
-        # if ((i_episode < k)):
+        if ((i_episode < k)):
             # linear optimization
-        if step == 0 and i_episode == 0:
-            # initialize optimization problem in the first step
-            pax_flows_solver = PaxFlowsSolver(env=env,gurobi_env=gurobi_env)
+            if step == 0 and i_episode == 0:
+                # initialize optimization problem in the first step
+                pax_flows_solver = PaxFlowsSolver(env=env,gurobi_env=gurobi_env)
+            else:
+                pax_flows_solver.update_constraints()
+                pax_flows_solver.update_objective()
+            _, paxreward, done, info_pax = env.pax_step(pax_flows_solver=pax_flows_solver, episode=i_episode)
+            episode_reward += paxreward
         else:
-            pax_flows_solver.update_constraints()
-            pax_flows_solver.update_objective()
-        _, paxreward, done, info_pax = env.pax_step(pax_flows_solver=pax_flows_solver, episode=i_episode)
-        episode_reward += paxreward
-        # else:
-        #     # RL 1
-        #     if ((k < i_episode < 2 * k) or (3 * k < i_episode < 4 * k) or (5 * k < i_episode < 6 * k) or (7 * k < i_episode < 8 * k) or (9 * k < i_episode < 10 * k) or (11 * k < i_episode < 12 * k) or (13 * k < i_episode < 14 * k) or (15 * k < i_episode < 16 * k)):
-        #         for param in model_2.parameters():
-        #             param.requires_grad = True
-        #             grad_prop = True
-        #     else:
-        #         for param in model_2.parameters():
-        #             param.requires_grad = False
-        #             grad_prop = False
-        #     action_rl_one = model_2.select_action()
-        #     # calculate a flow-tuple of length number of edges by calculating 
-        #     # difference between node_destination and node_origin
-        #     flow = []
-        #     edges = env.edges
-        #     for node_destination_idx in range(env.number_nodes):
-        #         for node_origin_idx in range(env.number_nodes):
-        #             edge = (env.nodes[node_origin_idx], env.nodes[node_destination_idx])
-        #             if edge in edges:
-        #                 total_acc = sum(env.acc[n][env.time] for n in env.nodes)
-        #                 flow.append(total_acc * (action_rl_one[node_destination_idx] - action_rl_one[node_origin_idx]))
-        #     _ , paxreward, done, info_pax = env.pax_step(paxAction=flow, episode=i_episode)
-        #     episode_reward += paxreward
+            # RL 1
+            # if ():
+            #     for param in model_2.parameters():
+            #         param.requires_grad = True
+            #         grad_prop = True
+            # else:
+            #     for param in model_2.parameters():
+            #         param.requires_grad = False
+            #         grad_prop = False
+            action_rl_one = model_2.select_action()
+            # calculate a flow-tuple of length number of edges by calculating 
+            # difference between node_destination and node_origin
+            flow = []
+            edges = env.edges
+            for node_destination_idx in range(env.number_nodes):
+                for node_origin_idx in range(env.number_nodes):
+                    edge = (env.nodes[node_origin_idx], env.nodes[node_destination_idx])
+                    if edge in edges:
+                        total_acc = sum(env.acc[n][env.time] for n in env.nodes)
+                        flow.append(total_acc * (action_rl_one[node_destination_idx] - action_rl_one[node_origin_idx]))
+            _ , paxreward, done, info_pax = env.pax_step(paxAction=flow, episode=i_episode)
+            episode_reward += paxreward
 
-        # # use GNN-RL policy (Step 2 in paper)
-        # if ((k < i_episode < 2 * k) or (3 * k < i_episode < 4 * k) or (5 * k < i_episode < 6 * k) or (7 * k < i_episode < 8 * k) or (9 * k < i_episode < 10 * k) or (11 * k < i_episode < 12 * k) or (13 * k < i_episode < 14 * k) or (15 * k < i_episode < 16 * k)):
-        #     for param in model.parameters():
-        #         param.requires_grad = False
-        #         grad_prop = False
-        # else:
-        #     for param in model.parameters():
-        #         param.requires_grad = True
-        #         grad_prop = True
-        action_rl = model.select_action()           
+        # use GNN-RL policy (Step 2 in paper)
+        if ((i_episode >= k)):
+            for param in model.parameters():
+                param.requires_grad = False
+                grad_prop = False
+        else:
+            for param in model.parameters():
+                param.requires_grad = True
+                grad_prop = True
+        action_rl = model.select_action_MPNN()           
 
         # transform sample from Dirichlet into actual vehicle counts (i.e. (x1*x2*..*xn)*num_vehicles)
         total_idle_acc = sum(env.acc[n][env.time+1] for n in env.nodes)
@@ -404,8 +404,8 @@ for step in range(T):
     episode_reward += paxreward
    
     # use GNN-RL policy (Step 2 in paper)
-    action_rl = best_model.select_action(eval_mode=True)  # vanilla GCN
-    # action_rl = best_model.select_action_MPNN(eval_mode=True)  # MPNN
+    # action_rl = best_model.select_action(eval_mode=True)  # vanilla GCN
+    action_rl = best_model.select_action_MPNN(eval_mode=True)  # MPNN
     # action_rl = best_model.select_action_GAT(eval_mode=True)  # GAT
     
     # transform sample from Dirichlet into actual vehicle counts (i.e. (x1*x2*..*xn)*num_vehicles)
