@@ -102,43 +102,6 @@ model = A2C(env=env, T=T, lr_a=lr_a, lr_c=lr_c, grad_norm_clip_a=grad_norm_clip_
 model_2 = A2C_2(env=env, T=T, lr_a=lr_a, lr_c=lr_c, grad_norm_clip_a=grad_norm_clip_a, grad_norm_clip_c=grad_norm_clip_c, seed=seed, scale_factor=scale_factor, scale_price=scale_price).to(device)
 tf = env.tf
 
-# if args.toy:
-#     problem_folder = 'Toy'
-#     file_path = os.path.join('data', problem_folder, 'scenario_test_6_1x2_flip.json')
-#     experiment = 'training_' + problem_folder+ '_' + str(args.max_episodes) + '_episodes_T_' + str(args.T) + file_path
-#     energy_dist_path = os.path.join('data', problem_folder,  'energy_distance_1x2.npy')
-#     scenario = create_scenario(file_path, energy_dist_path)
-#     env = AMoD(scenario)
-#     scale_factor = 0.01
-#     scale_price = 0.1
-#     model = A2C(env=env, T=T, lr_a=lr_a, lr_c=lr_c, grad_norm_clip_a=grad_norm_clip_a, grad_norm_clip_c=grad_norm_clip_c, seed=seed, scale_factor=scale_factor, scale_price=scale_price).to(device)
-#     # model.load_checkpoint(path=f'saved_files/ckpt/{problem_folder}/a2c_gnn_50000.pth')
-#     tf = env.tf
-# else:
-#     # problem_folder = 'SF_5_clustered'
-#     # file_path = os.path.join('data', problem_folder,  'SF_5_short.json')
-#     # problem_folder = 'NY/ClusterDataset1'
-#     # file_path = os.path.join('data', problem_folder,  'd1.json')
-#     problem_folder = 'NY_5'
-#     file_path = os.path.join('data', problem_folder,  'NY_5_day.json')
-#     experiment = 'training_' + file_path + '_' + str(args.max_episodes) + '_episodes_T_' + str(args.T)
-#     energy_dist_path = os.path.join('data', problem_folder, 'energy_distance.npy')
-#     scenario = create_scenario(file_path, energy_dist_path)
-#     env = AMoD(scenario)
-#     # Initialize A2C-GNN
-#     # # NY
-#     # scale_factor = 0.01
-#     # scale_price = 0.1
-#     # SF
-#     # scale_factor = 0.00001
-#     # scale_price = 0.1
-#     # NY 5 
-#     scale_factor = 0.0001
-#     scale_price = 0.1
-#     model = A2C(env=env, T=T, lr_a=lr_a, lr_c=lr_c, grad_norm_clip_a=grad_norm_clip_a, grad_norm_clip_c=grad_norm_clip_c, seed=seed, scale_factor=scale_factor, scale_price=scale_price).to(device)
-#     # model.load_checkpoint(path=f'saved_files/ckpt/{problem_folder}/a2c_gnn_40000.pth')
-#     tf = env.tf
-
 if use_equal_distr_baseline:
     experiment = 'uniform_distr_baseline_' + file_path + '_' + str(args.max_episodes) + '_episodes_T_' + str(args.T)
 if test:
@@ -213,6 +176,7 @@ for region in env.nodes_spatial:
     for destination in env.nodes_spatial:
         for t in range(env.tf):
             total_demand_per_spatial_node[region] += env.demand[region,destination][t]
+
 k = 8000
 grad_prop = True
 for i_episode in epochs:
@@ -226,10 +190,9 @@ for i_episode in epochs:
     action_tracker = {}
     for step in range(T):
         # take matching step (Step 1 in paper)
-        if ((i_episode < k)):
+        if i_episode < k:
             # linear optimization
             if step == 0 and i_episode == 0:
-                # initialize optimization problem in the first step
                 pax_flows_solver = PaxFlowsSolver(env=env,gurobi_env=gurobi_env)
             else:
                 pax_flows_solver.update_constraints()
@@ -237,18 +200,18 @@ for i_episode in epochs:
             _, paxreward, done, info_pax = env.pax_step(pax_flows_solver=pax_flows_solver, episode=i_episode)
             episode_reward += paxreward
         else:
-            # RL 1
-            # if ():
-            #     for param in model_2.parameters():
-            #         param.requires_grad = True
-            #         grad_prop = True
-            # else:
-            #     for param in model_2.parameters():
-            #         param.requires_grad = False
-            #         grad_prop = False
+            #RL 1
+            if ():
+                for param in model_2.parameters():
+                    param.requires_grad = True
+                    grad_prop = True
+            else:
+                for param in model_2.parameters():
+                    param.requires_grad = False
+                    grad_prop = False
             action_rl_one = model_2.select_action()
-            # calculate a flow-tuple of length number of edges by calculating 
-            # difference between node_destination and node_origin
+                # calculate a flow-tuple of length number of edges by calculating 
+                # difference between node_destination and node_origin
             flow = []
             edges = env.edges
             for node_destination_idx in range(env.number_nodes):
@@ -295,10 +258,6 @@ for i_episode in epochs:
             rebal_flow_solver.update_constraints(desired_acc, env)
             rebal_flow_solver.update_objective(env)
         rebAction = rebal_flow_solver.optimize()
-        # if (i_episode % 1000 == 0):
-        #     for i in range(len(env.edges)):
-        #         print(str(env.edges[i]) + ", rebAction: " + str(rebAction[i]))
-        # currently, rebAction is not returning a rebalancing action - hence, there is an error with rebal_flow_solver
 
         # Take action in environment
         new_obs, rebreward, done, info_reb = env.reb_step(rebAction)
@@ -316,9 +275,7 @@ for i_episode in epochs:
         if grad_prop:
             a_loss, v_loss, mean_value, mean_concentration, mean_std, mean_log_prob, std_log_prob = model.training_step()
 
-    # Send current statistics to screen was episode_reward, episode_served_demand, episode_rebalancing_cost
     epochs.set_description(f"Episode {i_episode+1} | Reward: {episode_reward:.2f} | ServedDemand: {episode_served_demand:.2f} | Reb. Cost: {episode_rebalancing_cost:.2f}")
-    # Send current statistics to wandb
     for spatial_node in range(env.scenario.spatial_nodes):
         wandb.log({"Episode": i_episode+1, f"Desired Accumulation {spatial_node}": desired_accumulations_spatial_nodes[spatial_node]})
         wandb.log({"Episode": i_episode+1, f"Total Demand {spatial_node}": total_demand_per_spatial_node[spatial_node]})

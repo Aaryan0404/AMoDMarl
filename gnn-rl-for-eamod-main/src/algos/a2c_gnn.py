@@ -82,69 +82,8 @@ class GNNParser():
         tensor = torch.tensor(all_times)
         e = (tensor.view(1, np.prod(tensor.shape)).float()).squeeze(0).view(self.input_size, len(edges)).T
 
-        print("x shape: " + str(x.shape))
-        print("edge_index shape: " + str(edge_index.shape)) 
-        print("edge_attr shape: " + str(e.shape))
         data = Data(x, edge_index, edge_attr=e)
-        
         return data
-
-    # def parse_obs(self):
-    #     # Part 1: Current charge levels
-    #     current_charge = [float(n[1])/self.env.scenario.number_charge_levels for n in self.env.nodes]
-    #     current_charge_tensor = torch.tensor(current_charge).view(1, 1, self.env.number_nodes).float()
-
-    #     # Part 2: Current state of charge
-    #     current_state_charge = [self.env.acc[n][self.env.time+1]*self.scale_factor for n in self.env.nodes]
-    #     current_state_charge_tensor = torch.tensor(current_state_charge).view(1, 1, self.env.number_nodes).float()
-
-    #     # Part 3: Future state of charge
-    #     future_state_charge = [[(self.env.acc[n][self.env.time+1] + self.env.dacc[n][t])*self.scale_factor 
-    #                             for n in self.env.nodes]
-    #                             for t in range(self.env.time+1, self.env.time+self.T+1)]
-    #     future_state_charge_tensor = torch.tensor(future_state_charge).view(1, self.T, self.env.number_nodes).float()
-
-    #     # Part 4: Future prices
-    #     future_prices = [
-    #         [
-    #             sum([
-    #                 self.env.price[o[0], j][t] * self.scale_factor * self.price_scale_factor * self.env.demand[o[0], j][t]
-    #                 *((o[1]-self.env.scenario.energy_distance[o[0], j]) >= int(not self.env.scenario.charging_stations[j]))
-    #                 for j in self.env.region
-    #             ])
-    #             for o in self.env.nodes
-    #         ]
-    #         for t in range(self.env.time+1, self.env.time+self.T+1)
-    #     ]
-    #     future_prices_tensor = torch.tensor(future_prices).view(1, self.T, self.env.number_nodes).float()
-
-    #     # Concatenation
-    #     x = torch.cat(
-    #         (current_charge_tensor, current_state_charge_tensor, future_state_charge_tensor, future_prices_tensor),
-    #         dim=1
-    #     ).squeeze(0).view(self.input_size, self.env.number_nodes).T
-
-    #     # Edge Index and Data
-    #     edge_index = self.env.gcn_edge_idx
-    #     data = Data(x, edge_index)
-
-    #     return data
-
-
-    # def parse_obs(self):
-    #     # nodes
-    #     x = torch.cat((
-    #         torch.tensor([float(n[1])/self.env.scenario.number_charge_levels for n in self.env.nodes]
-    #                      ).view(1, 1, self.env.number_nodes).float(),
-    #         torch.tensor([self.env.acc[n][self.env.time+1]*self.scale_factor for n in self.env.nodes]
-    #                      ).view(1, 1, self.env.number_nodes).float(),
-    #         torch.tensor([[(self.env.acc[n][self.env.time+1] + self.env.dacc[n][t])*self.scale_factor for n in self.env.nodes]
-    #                       for t in range(self.env.time+1, self.env.time+self.T+1)]).view(1, self.T, self.env.number_nodes).float(),
-    #         torch.tensor([[sum([self.env.price[o[0], j][t]*self.scale_factor*self.price_scale_factor*(self.env.demand[o[0], j][t])*((o[1]-self.env.scenario.energy_distance[o[0], j]) >= int(not self.env.scenario.charging_stations[j]))
-    #                       for j in self.env.region]) for o in self.env.nodes] for t in range(self.env.time+1, self.env.time+self.T+1)]).view(1, self.T, self.env.number_nodes).float()),
-    #                   dim=1).squeeze(0).view(self.input_size, self.env.number_nodes).T
-        
-    #     # edges 
 
     #     # versions for edge_index
     #     # V0 - all edges from AMoD passed into GCN
@@ -296,18 +235,6 @@ class GNNParser():
     #     # Finish V0 - V5 (with artificial edges added)
     #     # Graph Convolution already implemented - try Graph Attention and Graph Message Passing (with edge features)
     #     # RL Tuning (number of layers, dimensionality, step size (e-4))
-
-    # def parse_obs_spatial(self):
-    #     x = torch.cat((
-    #         torch.tensor([self.env.acc_spatial[n][self.env.time+1]*self.scale_factor for n in self.env.nodes_spatial]).view(1, 1, self.env.number_nodes_spatial).float(), 
-    #         torch.tensor([[(self.env.acc_spatial[n][self.env.time+1] + self.env.dacc_spatial[n][t])*self.scale_factor for n in self.env.nodes_spatial] \
-    #                       for t in range(self.env.time+1, self.env.time+self.T+1)]).view(1, self.T, self.env.number_nodes_spatial).float(),
-    #         torch.tensor([[sum([self.env.price[o,j][t]*self.scale_factor*self.price_scale_factor*(self.env.demand[o,j][t]) \
-    #                       for j in self.env.region]) for o in self.env.region] for t in range(self.env.time+1, self.env.time+self.T+1)]).view(1, self.T, self.env.number_nodes_spatial).float()),
-    #           dim=1).squeeze(0).view(self.input_size, self.env.number_nodes_spatial).T
-    #     edge_index  = self.env.gcn_edge_idx_spatial
-    #     data = Data(x, edge_index)
-    #     return data
     
 
 class EdgeConv(MessagePassing):
@@ -327,13 +254,7 @@ class EdgeConv(MessagePassing):
 
     def message(self, x_i, x_j, edge_attr):
         # x_i has shape [E, in_channels]
-        # x_j has shape [E, in_channels]
-
-        # print("x_i shape: " + str(x_i.shape))
-        # print("x_j shape: " + str(x_j.shape))
-        # print("edge_attr shape: " + str(edge_attr.shape))
         tmp = torch.cat([x_i, x_j, edge_attr], dim=1)  # tmp has shape [E, 2 * in_channels]
-        # print("tmp shape: " + str(tmp.shape))
         return self.mlp(tmp)
 
 #########################################
@@ -389,25 +310,6 @@ class GNNActor(nn.Module):
         alpha = F.softplus(self.h_to_concentration(x_pp))
         return (mu, sigma), alpha
 
-    # GAT implementation
-    # def __init__(self, in_channels, dim_h=16, out_channels=2, heads=16, dropout_rate=0):
-    #     super().__init__()
-    #     self.gat1 = GATv2Conv(in_channels, dim_h, heads=heads)
-    #     self.gat2 = GATv2Conv(dim_h * heads, dim_h, heads=heads)
-    #     self.gat3 = GATv2Conv(dim_h * heads, out_channels, heads=1)
-    #     self.dropout = nn.Dropout(dropout_rate)
-    #     self.bn = nn.BatchNorm1d(dim_h * heads)
-
-    # def forward(self, x, edge_index):
-    #     out = F.relu(self.gat1(x, edge_index)) 
-    #     out = self.bn(out)
-    #     out = self.dropout(out)
-    #     out = F.relu(self.gat2(out, edge_index)) 
-    #     out = self.bn(out)
-    #     out = self.dropout(out)
-    #     out = self.gat3(out, edge_index) 
-    #     return out[:, 0], out[:, 1]
-
 #########################################
 ############## CRITIC ###################
 #########################################
@@ -459,24 +361,6 @@ class GNNCritic(nn.Module):
         v = self.g_to_v(x_pp)
         return v
     
-    # GAT implementation
-    # def __init__(self, in_channels, dim_h=16, out_channels=1, heads=16, dropout_rate=0):
-    #     super().__init__()
-    #     self.gat1 = GATv2Conv(in_channels, dim_h, heads=heads)
-    #     self.gat2 = GATv2Conv(dim_h * heads, dim_h, heads=heads)
-    #     self.gat3 = GATv2Conv(dim_h * heads, out_channels, heads=1)
-    #     self.dropout = nn.Dropout(dropout_rate)
-    #     self.bn = nn.BatchNorm1d(dim_h * heads)
-
-    # def forward(self, x, edge_index):
-    #     out = F.relu(self.gat1(x, edge_index)) 
-    #     out = self.bn(out)
-    #     out = self.dropout(out)
-    #     out = F.relu(self.gat2(out, edge_index)) 
-    #     out = self.bn(out)
-    #     out = self.dropout(out)
-    #     out = self.gat3(out, edge_index) 
-    #     return out.mean(dim=0)
 
 #########################################
 ############## A2C AGENT ################
@@ -512,8 +396,8 @@ class A2C(nn.Module):
         # self.obs_parser = GNNParser(self.env, T=T, input_size=self.input_size, scale_factor=scale_factor, scale_price=scale_price)
 
         # MPNN implementation (specifically configured for V2 - default edges from AMoD plus self-loops = 32 edges for toy example)
-        self.actor = GNNActor(in_channels=self.input_size)
-        self.critic = GNNCritic(in_channels=self.input_size)
+        self.actor = GNNActor()
+        self.critic = GNNCritic()
         self.obs_parser = GNNParser(self.env, T=T, input_size=self.input_size, scale_factor=scale_factor, scale_price=scale_price)
 
         self.optimizers = self.configure_optimizers()
@@ -562,17 +446,6 @@ class A2C(nn.Module):
         # # critic: estimates V(s_t)
         value = self.critic(x.x, x.edge_index, x.edge_attr)
         return a_probs, value
-
-
-        # GAT implementation
-        # actor: computes concentration parameters of a Dirichlet distribution
-        # a_out_concentration, a_out_is_zero = self.actor(x.x, x.edge_index)
-        # concentration = F.softplus(a_out_concentration).reshape(-1) + jitter
-        # non_zero = torch.sigmoid(a_out_is_zero).reshape(-1)
-        
-        # critic: estimates V(s_t)
-        # value = self.critic(x.x, x.edge_index)
-        # return concentration, non_zero, value
 
     def parse_obs(self):
         state = self.obs_parser.parse_obs()
@@ -633,7 +506,6 @@ class A2C(nn.Module):
         mu, sigma = a_probs[0][0], a_probs[0][1]
         alpha = a_probs[1] + 1e-16
         
-        # gaus = Normal(loc=mu.view(-1,), scale=sigma.view(-1,))
         dirichlet_action = Dirichlet(concentration=alpha.view(-1,))
         
         # prod = gaus.sample()
@@ -646,51 +518,7 @@ class A2C(nn.Module):
         self.saved_actions.append(SavedAction(0.05 * dir_log_prob, value))
         
         return action
-    
-    # def select_action_GAT(self, eval_mode=False):
-    #     concentration, non_zero, value = self.forward()
-    #     concentration = concentration.to(self.device)
-    #     non_zero = non_zero.to(self.device)
-    #     value = value.to(self.device)
-    #     # concentration, value = self.forward(obs)
-    #     concentration_without_zeros = torch.tensor([], dtype=torch.float32)
-    #     sampled_zero_bool_arr = []
-    #     log_prob_for_zeros = 0
-    #     for node in range(non_zero.shape[0]):
-    #         sample = torch.bernoulli(non_zero[node])
-    #         if sample > 0:
-    #             indices = torch.tensor([node])
-    #             new_element = torch.index_select(concentration, 0, indices)
-    #             concentration_without_zeros = torch.cat((concentration_without_zeros, new_element), 0)
-    #             sampled_zero_bool_arr.append(False)
-    #             log_prob_for_zeros += torch.log(non_zero[node])
-    #         else:
-    #             sampled_zero_bool_arr.append(True)
-    #             log_prob_for_zeros += torch.log(1-non_zero[node])
-    #     if concentration_without_zeros.shape[0] != 0:
-    #         mean_concentration = np.mean(concentration_without_zeros.detach().numpy())
-    #         std_concentration = np.std(concentration_without_zeros.detach().numpy())
-    #         self.means_concentration.append(mean_concentration)
-    #         self.std_concentration.append(std_concentration)
-    #         m = Dirichlet(concentration_without_zeros)
-    #         if (eval_mode):
-    #             dirichlet_action = concentration_without_zeros / (concentration_without_zeros.sum() + 1e-16)
-    #         else:
-    #             dirichlet_action = m.rsample()
-    #         dirichlet_action_np = list(dirichlet_action.detach().numpy())
-    #         log_prob_dirichlet = m.log_prob(dirichlet_action)
-    #     else:
-    #         log_prob_dirichlet = 0
-    #     self.saved_actions.append(SavedAction(log_prob_dirichlet+log_prob_for_zeros, value))
-    #     action_np = []
-    #     dirichlet_idx = 0
-    #     for node in range(non_zero.shape[0]):
-    #         if sampled_zero_bool_arr[node]:
-    #             action_np.append(0.)
-    #         else:
-    #             action_np.append(dirichlet_action_np[dirichlet_idx])
-    #             dirichlet_idx += 1
-    #     return action_np
+
 
     def training_step(self):
         R = 0
@@ -721,22 +549,14 @@ class A2C(nn.Module):
         mean_log_prob = np.mean(log_probs)
         std_log_prob = np.std(log_probs)
         for (log_prob, value), R in zip(saved_actions, returns):
-            # normed_log_prob = (log_prob - np.mean(log_probs)) / (np.std(log_probs) + self.eps)
-            # normed_value = (value - mean_value) / (np.std(values) + self.eps)
             advantage = R - value.item()
-
-            # calculate actor (policy) loss
-            policy_losses.append(-log_prob * advantage)
-
-            # calculate critic (value) loss using L1 smooth loss
+            policy_losses.append(-log_prob * advantage)   # calculate actor (policy) loss
             value_losses.append(F.smooth_l1_loss(value, torch.tensor([R]).to(self.device)))
 
         # take gradient steps
         self.optimizers['a_optimizer'].zero_grad()
         a_loss = torch.stack(policy_losses).sum()
         a_loss = torch.clamp(a_loss, -1000, 1000)
-        # if np.abs(a_loss.item()) == 1000:
-        #     self.decay_learning_rate(scaler_a=0.1)
         a_loss.backward()
         torch.nn.utils.clip_grad_norm_(self.actor.parameters(), self.grad_norm_clip_a)
         self.optimizers['a_optimizer'].step()
@@ -758,9 +578,7 @@ class A2C(nn.Module):
         actor_params = list(self.actor.parameters())
         critic_params = list(self.critic.parameters())
         optimizers['a_optimizer'] = torch.optim.Adam(actor_params, lr=self.adapted_lr_a)
-        # optimizers['a_optimizer'] = torch.optim.RAdam(actor_params, lr=self.adapted_lr_a)
         optimizers['c_optimizer'] = torch.optim.Adam(critic_params, lr=self.adapted_lr_c)
-        # optimizers['c_optimizer'] = torch.optim.RAdam(critic_params, lr=self.adapted_lr_c)
         return optimizers
 
     def save_checkpoint(self, path='ckpt.pth'):

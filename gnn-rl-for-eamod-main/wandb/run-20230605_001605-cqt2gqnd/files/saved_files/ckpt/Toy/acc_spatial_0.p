@@ -1,0 +1,1 @@
+/home/ubuntu/cs224rfinalProject/gnn-rl-for-eamod-main/saved_files/ckpt/Toy/acc_spatial_0.p
