@@ -53,14 +53,14 @@ def train(subproblem=0, episodes=20, seed=10, test=False):
         T = config.T
         seed = config.seed
 
-        problem_folder = 'SF_10_clustered'
         training_environments = []
-        # experiment = 'batched_training_' + problem_folder + '_'+ 'subproblem_' + str(subproblem) + '_episodes_' + str(episodes) +  '_T_' + str(T)
-        file_path = os.path.join('data', problem_folder, 'SF_10.json')
-        energy_dist_path = os.path.join('data', problem_folder, 'energy_distance.npy')
+        problem_folder = 'Toy'
+        file_path = os.path.join('data', problem_folder, 'scenario_test_3_2.json')
+        energy_dist_path = os.path.join('data', problem_folder,  'energy_distance_3x2.npy')
         scenario = create_scenario(file_path, energy_dist_path, seed=seed)
         env = AMoD(scenario, beta=0.5)
         training_environments.append(env)
+        
         # Initialize A2C-GNN
         model = A2C(env=env, T=T, lr_a=lr_a, lr_c=lr_c, grad_norm_clip_a=grad_norm_clip_a, grad_norm_clip_c=grad_norm_clip_c, seed=seed).to(device)
         tf = env.tf
@@ -79,23 +79,20 @@ def train(subproblem=0, episodes=20, seed=10, test=False):
             #############Training Loop#############
             #######################################
 
-            #Initialize lists for logging
             log = {'train_reward': [], 
                 'train_served_demand': [], 
                 'train_reb_cost': []}
             train_episodes = episodes #set max number of training episodes
             T = tf #set episode length
-            epochs = trange(train_episodes) #epoch iterator
-            # best_rewards = np.zeros(number_subproblems) #set best reward for each subproblem
+            epochs = trange(train_episodes)
             best_reward = -inf
             model.train() #set model in train mode
 
             for i_episode in epochs:
-                # env_idx = np.random.randint(0, number_subproblems)
                 reward_over_subproblems = 0
                 served_demand_over_subproblems = 0
                 reb_cost_over_subproblems = 0
-                # TODO: implement multiple subproblems
+
                 for env_idx in range(1):
                     env = training_environments[env_idx]
                     model.set_env(env)
@@ -107,12 +104,12 @@ def train(subproblem=0, episodes=20, seed=10, test=False):
                         # take matching step (Step 1 in paper)
                         obs, paxreward, done, info = env.pax_step(gurobi_env=gurobi_env)
                         episode_reward += paxreward
+                        
                         # use GNN-RL policy (Step 2 in paper)
                         action_rl = model.select_action(obs)
                         # transform sample from Dirichlet into actual vehicle counts (i.e. (x1*x2*..*xn)*num_vehicles)
                         total_acc = sum(env.acc[n][env.time+1] for n in env.nodes)
                         desiredAcc = {env.nodes[i]: int(action_rl[i] *total_acc) for i in range(env.number_nodes)}
-                        # TODO solve problem here!!!
                         total_desiredAcc = sum(desiredAcc[n] for n in env.nodes)
                         missing_cars = total_acc - total_desiredAcc
                         most_likely_node = np.argmax(action_rl)
@@ -122,6 +119,7 @@ def train(subproblem=0, episodes=20, seed=10, test=False):
                         assert total_desiredAcc == total_acc
                         for n in env.nodes:
                             assert desiredAcc[n] >= 0
+                            
                         # solve minimum rebalancing distance problem (Step 3 in paper)
                         rebAction = solveRebFlow(env=env, desiredAcc=desiredAcc, gurobi_env=gurobi_env)
                         # Take action in environment
@@ -146,13 +144,7 @@ def train(subproblem=0, episodes=20, seed=10, test=False):
                 epochs.set_description(f"Episode {i_episode+1} | Reward: {reward_over_subproblems:.2f} | ServedDemand: {served_demand_over_subproblems:.2f} | Reb. Cost: {reb_cost_over_subproblems:.2f}")
                 # Send current statistics to wandb
                 wandb.log({"Episode": i_episode+1, "Reward": reward_over_subproblems, "ServedDemand": served_demand_over_subproblems, "Reb. Cost": reb_cost_over_subproblems, "Subproblem": env_idx, "Actor Loss": a_loss, "Value Loss": v_loss, "Mean Value": mean_value})
-                # Checkpoint best performing model
-                # if episode_reward > best_rewards[env_idx]:
-                #     print("Saving best model, evaluated on subproblem: " + str(env_idx))
-                #     model.save_checkpoint(path=f"./{args.directory}/ckpt/{problem_folder}/a2c_gnn.pth")
-                #     wandb.save(f"./{args.directory}/ckpt/{problem_folder}/a2c_gnn.pth")
-                #     best_rewards[env_idx] = episode_reward
-                #     wandb.log({f"Best Reward for subcluster {env_idx}": episode_reward})
+
                 if reward_over_subproblems > best_reward:
                     model.save_checkpoint(path=f"./saved_files/ckpt/{problem_folder}/a2c_gnn.pth")
                     wandb.save(f"./saved_files/ckpt/{problem_folder}/a2c_gnn.pth")
@@ -168,7 +160,8 @@ def train(subproblem=0, episodes=20, seed=10, test=False):
             model.load_checkpoint(path=f'saved_files/ckpt/{problem_folder}/a2c_gnn.pth')
             test_episodes = episodes #set max number of training episodes
             T = tf #set episode length
-            epochs = trange(test_episodes) #epoch iterator
+            epochs = trange(test_episodes)
+            
             #Initialize lists for logging
             log = {'test_reward': [], 
                 'test_served_demand': [], 
@@ -200,6 +193,7 @@ def train(subproblem=0, episodes=20, seed=10, test=False):
                 epochs.set_description(f"Episode {episode+1} | Reward: {episode_reward:.2f} | ServedDemand: {episode_served_demand:.2f} | Reb. Cost: {episode_rebalancing_cost}")
                 # Send current statistics to wandb
                 wandb.log({"Episode": episode+1, "Reward": episode_reward, "ServedDemand": episode_served_demand, "Reb. Cost": episode_rebalancing_cost})
+                
                 # Checkpoint best performing model
                 if episode_reward > best_reward:
                     print("Saving best model.")
