@@ -1,3 +1,3 @@
-# CS224R Final Project: RL-optimized Passenger-Vehicle Matching
+# AMoD Passenger-Matching Systems Using Multi-Agent Coordination
 
 Ayush Agrawal, Aaryan Singhal, Justin Wu
