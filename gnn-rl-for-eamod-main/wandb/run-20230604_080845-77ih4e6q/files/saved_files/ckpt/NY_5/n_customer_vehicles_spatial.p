@@ -1,1 +1,0 @@
-/home/ubuntu/RL-EAMOD-Public/gnn-rl-for-eamod-main/saved_files/ckpt/NY_5/n_customer_vehicles_spatial.p

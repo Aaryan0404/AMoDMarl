@@ -1,1 +1,0 @@
-/home/ubuntu/RL-EAMOD-Public/gnn-rl-for-eamod-main/saved_files/ckpt/Toy/acc_spatial_0.p

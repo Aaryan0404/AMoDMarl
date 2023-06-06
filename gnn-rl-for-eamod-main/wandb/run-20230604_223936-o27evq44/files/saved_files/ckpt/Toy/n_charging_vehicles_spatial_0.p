@@ -1,1 +1,0 @@
-/home/ubuntu/cs224rfinalProject/gnn-rl-for-eamod-main/saved_files/ckpt/Toy/n_charging_vehicles_spatial_0.p
